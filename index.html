@@ -1231,6 +1231,14 @@ function csvDate(s){
   if(mo<1||mo>12||d<1||d>31||y<2000||y>2100)return '';
   return y+'-'+pad(mo)+'-'+pad(d);
 }
+function csvDateMY(s){
+  const m=String(s||'').trim().normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().match(/^([a-z]{3,10})\.?[-\/ ](\d{2,4})$/);
+  if(!m)return '';
+  const key=Object.keys(MESN).find(k=>k.startsWith(m[1].slice(0,3)));
+  if(key===undefined)return '';
+  let y=+m[2];if(y<100)y+=2000;
+  return y+'-'+pad(MESN[key]+1)+'-01';
+}
 function csvType(s){
   const t=norm(s);
   if(/^(gasto|egreso|salida)/.test(t))return 'gasto';
@@ -1247,12 +1255,15 @@ function importCsvTx(text){
   const sByName=n=>{n=norm(n);return S.scopes.find(s=>norm(s.name)===n)};
   const seen=new Set(S.tx.map(txKey));
   const add=[],newCats={gasto:new Set(),ingreso:new Set()},bad={wallet:new Set(),scope:new Set()};
-  let invalid=0,dup=0;
+  let invalid=0,dup=0,monthOnly=0;
   for(let i=start;i<rows.length;i++){
     const r=rows[i];
     if(r.every(c=>!c))continue;
     const [d0,t0,a0,w0,to0,cat0,sc0,note]=r;
-    const date=csvDate(d0),type=csvType(t0),amount=csvAmount(a0);
+    if(!d0&&!t0&&!a0)continue;
+    let date=csvDate(d0);const type=csvType(t0),amount=csvAmount(a0);
+    let onlyMonth=false;
+    if(!date){date=csvDateMY(d0);onlyMonth=!!date}
     if(!date||!type||!(amount>0)){invalid++;continue}
     const w=wByName(w0);
     if(!w){bad.wallet.add(w0||'(vacío)');continue}
@@ -1270,9 +1281,11 @@ function importCsvTx(text){
     }
     const k=txKey(rec);
     if(seen.has(k)){dup++;continue}
-    seen.add(k);add.push(rec);
+    add.push(rec);
+    if(onlyMonth)monthOnly++;
   }
   const lines=[add.length+' movimiento(s) listos para importar.'];
+  if(monthOnly)lines.push('Atención: '+monthOnly+' fila(s) tenían solo mes y año (ej. «ene-26»); se usará el día 1. Para un día exacto, escribe la fecha completa, como 15/01/2026.');
   if(dup)lines.push(dup+' repetido(s) que ya existen (se omiten).');
   if(invalid)lines.push(invalid+' fila(s) con fecha, tipo o monto no válido (se omiten).');
   if(bad.wallet.size)lines.push('Billeteras que no existen en la app: '+[...bad.wallet].slice(0,4).join(', ')+' (se omiten esas filas).');
@@ -1305,9 +1318,9 @@ function zipStore(files){
   return new Blob([...chunks,...cd,end],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
 }
 const xe=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-function sheetXml(rows,widths,header,validations){
+function sheetXml(rows,widths,header,validations,dateCol){
   const sd=rows.map((r,ri)=>'<row r="'+(ri+1)+'">'+r.map((v,ci)=>v===''||v==null?'':'<c r="'+String.fromCharCode(65+ci)+(ri+1)+'" t="inlineStr"'+(header&&ri===0?' s="1"':'')+'><is><t xml:space="preserve">'+xe(v)+'</t></is></c>').join('')+'</row>').join('');
-  const cols=widths.map((w,i)=>'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>').join('');
+  const cols=widths.map((w,i)=>'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"'+(dateCol&&i===0?' style="2"':'')+'/>').join('');
   const pane=header?'<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/>':'';
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0">'+pane+'</sheetView></sheetViews><cols>'+cols+'</cols><sheetData>'+sd+'</sheetData>'+(validations||'')+'</worksheet>';
 }
@@ -1337,8 +1350,8 @@ function buildTemplate(){
     {name:'_rels/.rels',data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'},
     {name:'xl/workbook.xml',data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Movimientos" sheetId="1" r:id="rId1"/><sheet name="Listas" sheetId="2" r:id="rId2"/><sheet name="Instrucciones" sheetId="3" r:id="rId3"/></sheets></workbook>'},
     {name:'xl/_rels/workbook.xml.rels',data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet3.xml"/><Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'},
-    {name:'xl/styles.xml',data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0F6E78"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'},
-    {name:'xl/worksheets/sheet1.xml',data:sheetXml(mov,[14,16,12,24,24,30,20,40],true,vals)},
+    {name:'xl/styles.xml',data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0F6E78"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="14" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'},
+    {name:'xl/worksheets/sheet1.xml',data:sheetXml(mov,[14,16,12,24,24,30,20,40],true,vals,true)},
     {name:'xl/worksheets/sheet2.xml',data:sheetXml(listas,[26,30,30,30,24],true,'')},
     {name:'xl/worksheets/sheet3.xml',data:sheetXml(ins,[120],false,'')}
   ];
