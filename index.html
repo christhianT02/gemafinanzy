@@ -837,7 +837,7 @@ function txRow(t){
   let title=t.note||t.category||'Movimiento',ic='down',tags=[];
   if(t.type==='ingreso'){ic='up';tags=[t.category,w&&w.name,scopeOf(t)]}
   else if(t.type==='gasto'){tags=[t.category,w&&w.name,scopeOf(t)]}
-  else{ic='swap';const lbl=to&&to.type==='credito'?'Pago de tarjeta':to&&to.type==='inversion'?'Inversión':'Transferencia';title=t.note||lbl;tags=[(w?w.name:'?')+' → '+(to?to.name:'?')]}
+  else{ic='swap';const lbl=to&&to.type==='credito'?'Pago de tarjeta':to&&to.type==='inversion'?'Inversión':'Transferencia';title=t.note||lbl;tags=[(w?w.name:(!t.wallet?'Aporte propio':'?'))+' → '+(to?to.name:'?')]}
   const sign=t.type==='ingreso'?'+':t.type==='gasto'?'−':'';
   const cls=t.type==='ingreso'?'in':t.type==='gasto'?'out':'';
   return `<button class="tx" data-act="editTx" data-id="${t.id}"><span class="tx-ic ${t.type} ${isCard?'card':''}">${svg(ic,2.2)}</span>
@@ -1099,12 +1099,12 @@ function drawTx(edit){
   let hint='';
   if(t.type==='gasto'&&w&&w.type==='credito')hint=`<div class="hint">${cycleHint(w,t.date)}</div>`;
   if(isT&&to&&to.type==='credito')hint=`<div class="hint">Pago de tarjeta: baja la deuda de ${esc(to.name)}. No cuenta como gasto nuevo.</div>`;
-  if(isT&&to&&to.type==='inversion')hint=`<div class="hint info">Inversión: el dinero pasa de ${esc(w?w.name:'')} a ${esc(to.name)}. No cuenta como gasto ni reduce tu saldo libre.</div>`;
+  if(isT&&to&&to.type==='inversion')hint=w?`<div class="hint info">Inversión: el dinero pasa de ${esc(w.name)} a ${esc(to.name)}. No cuenta como gasto ni reduce tu saldo libre.</div>`:`<div class="hint info">Aporte propio: dinero que tenías aparte y no está en tus billeteras. Suma a ${esc(to.name)}, no resta de ninguna cuenta y no cambia tu saldo libre.</div>`;
   openSheet(`<div class="sheet-h"><h2>${edit?'Editar movimiento':'Nuevo movimiento'}</h2><button class="btn icon-btn ghost" data-act="close" aria-label="Cerrar">${svg('x',2.2)}</button></div>
   <div class="seg" role="tablist">${[['gasto','Gasto'],['ingreso','Ingreso'],['transfer','Transferir / pagar']].map(([v,l])=>`<button data-act="txType" data-v="${v}" class="${t.type===v?'on':''}">${l}</button>`).join('')}</div>
   <label class="amt"><span>$</span><input id="fAmt" inputmode="decimal" autocomplete="off" placeholder="0,00" value="${t.amount!==''?String(t.amount).replace('.',','):''}" autofocus aria-label="Monto"></label>
   <div class="row2"><label class="field"><span>Fecha</span><input class="inp" type="date" id="fDate" value="${t.date}"></label>
-  <label class="field"><span>${isT?'Desde':'Billetera'}</span><select class="inp" id="fWallet">${walletOpts(t.wallet)}</select></label></div>
+  <label class="field"><span>${isT?'Desde':'Billetera'}</span><select class="inp" id="fWallet">${isT?`<option value="" ${t.wallet?'':'selected'}>Fuera de mis billeteras (aporte propio)</option>`:''}${walletOpts(t.wallet)}</select></label></div>
   ${isT?`<label class="field"><span>Hacia</span><select class="inp" id="fTo">${walletOpts(t.to,x=>x.id!==t.wallet)}</select></label>`:
   `<div class="row2"><label class="field"><span>Categoría</span><select class="inp" id="fCat"><option value="">Elige…</option>${opt(cats,t.category)}${t.category&&!cats.includes(t.category)?`<option selected>${esc(t.category)}</option>`:''}</select></label>
   <label class="field"><span>Ámbito</span><select class="inp" id="fScope">${opt(S.scopes.map(s=>s.name),t.scope||'Personal')}</select></label></div>`}
@@ -1127,7 +1127,7 @@ $('#sheet').addEventListener('change',e=>{
 function saveTx(){
   readTx();const t=TX;const amt=parseAmt(t.amount);
   if(!(amt>0))return toast('Escribe un monto mayor a cero.');
-  if(!t.wallet)return toast('Elige una billetera.');
+  if(!t.wallet&&!(t.type==='transfer'&&W(t.to)&&W(t.to).type==='inversion'))return toast(t.type==='transfer'?'Elige la billetera de origen. Solo los aportes a inversión pueden venir de fuera.':'Elige una billetera.');
   if(t.type==='transfer'&&(!t.to||t.to===t.wallet))return toast('Elige una billetera de destino distinta.');
   const rec={id:t.id||uid(),type:t.type,amount:amt,date:t.date,wallet:t.wallet,note:t.note,created:t.created||Date.now()};
   if(t.demo)rec.demo=true;
@@ -1266,11 +1266,12 @@ function importCsvTx(text){
     if(!date){date=csvDateMY(d0);onlyMonth=!!date}
     if(!date||!type||!(amount>0)){invalid++;continue}
     const w=wByName(w0);
-    if(!w){bad.wallet.add(w0||'(vacío)');continue}
-    const rec={id:uid(),type,amount:round2(amount),date,wallet:w.id,note:note||'',created:Date.now()};
+    const to=type==='transfer'?wByName(to0):null;
+    const externalInv=type==='transfer'&&!w0&&to&&to.type==='inversion';
+    if(!w&&!externalInv){bad.wallet.add(w0||'(vacío)');continue}
+    const rec={id:uid(),type,amount:round2(amount),date,wallet:w?w.id:'',note:note||'',created:Date.now()};
     if(type==='transfer'){
-      const to=wByName(to0);
-      if(!to||to.id===w.id){bad.wallet.add(to0||'(vacío)');continue}
+      if(!to||(w&&to.id===w.id)){bad.wallet.add(to0||'(vacío)');continue}
       rec.to=to.id;
     }else{
       const sc=sc0?sByName(sc0):S.scopes[0];
@@ -1340,6 +1341,7 @@ function buildTemplate(){
     ['3. Tipo, Billetera, Categoría y Ámbito se eligen de la lista desplegable. Los nombres deben coincidir con los de la app.'],
     ['4. Monto: solo el número, sin el signo $. Ejemplo: 25,50'],
     ['5. Hacia: solo para Transferencias (ahorro, pago de tarjeta, retiro). En gastos e ingresos déjalo vacío.'],
+    ['    Aporte a inversión con dinero que tenías aparte (no sale de ninguna billetera): Tipo Transferencia, Billetera vacía, Hacia = tu billetera de inversión.'],
     ['6. Ámbito: si lo dejas vacío se usa Personal.'],
     ['7. Cuando termines, estando en la hoja "Movimientos": Archivo > Descargar > Valores separados por comas (.csv).'],
     ['8. En la app: Ajustes > Importar CSV. Antes de importar te mostrará un resumen.'],
@@ -1452,11 +1454,12 @@ function quickParse(text){
     }else{
       from=ws[0]||null;to=ws[1]||null;
       if(/\bahorre\b/.test(n)){to=byType('ahorro')||to;from=ws.find(w=>w!==to)||byType('banco')}
-      else if(/\binverti/.test(n)){to=byType('inversion')||to;from=ws.find(w=>w!==to)||byType('banco')}
+      else if(/\binverti/.test(n)){to=ws.find(w=>w.type==='inversion')||byType('inversion')||to;from=ws.find(w=>w.type!=='inversion')||byType('banco')}
       else if(/\bretire\b/.test(n)){from=ws[0]||byType('banco');to=byType('efectivo')}
       else if(/\bdeposite\b/.test(n)){from=byType('efectivo');to=ws[0]||byType('banco')}
     }
-    p.wallet=from?from.id:'';p.to=to&&from&&to.id!==from.id?to.id:'';
+    if(to&&to.type==='inversion'&&/\b(aparte|externo|externa|propio|propios|fuera|bolsillo)\b/.test(n))from=null;
+    p.wallet=from?from.id:'';p.to=to&&(!from||to.id!==from.id)?to.id:'';
   }else{
     const w=ws[0]||byType('banco')||S.wallets[0];
     p.wallet=w?w.id:'';
