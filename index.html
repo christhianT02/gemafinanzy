@@ -329,6 +329,14 @@ select.inp{appearance:none;-webkit-appearance:none;background-image:url("data:im
 .gate-msg{margin-top:16px;font-size:14px;color:var(--out);min-height:20px}
 .gate-msg.ok{color:var(--muted)}
 .gate-foot{margin-top:18px;font-size:12.5px;color:var(--muted)}
+.lock{position:fixed;inset:0;z-index:120;background:var(--bg);display:none;align-items:center;justify-content:center;padding:24px}
+.lock.open{display:flex}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;font-size:14px}
+.stp{display:flex;gap:10px;align-items:flex-start}
+.stp-n{flex:none;width:24px;height:24px;border-radius:50%;background:var(--brand);color:var(--brand-ink);display:grid;place-items:center;font-weight:800;font-size:13px}
+.fab.fab2{bottom:94px;right:31px;width:44px;height:44px;border-radius:14px;background:var(--panel);color:var(--brand);border:1px solid var(--line)}
+.fab.fab2 svg{width:22px;height:22px}
+@media (max-width:860px){.fab.fab2{bottom:calc(140px + env(safe-area-inset-bottom,0px));right:21px}}
 </style>
 </head>
 <body>
@@ -353,8 +361,18 @@ select.inp{appearance:none;-webkit-appearance:none;background-image:url("data:im
 </div>
 <nav class="bottom" id="bottomNav" aria-label="Navegación"></nav>
 <button class="fab" data-act="newTx" aria-label="Nuevo movimiento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+<button class="fab fab2" data-act="quick" aria-label="Registro rápido por texto o voz"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
 <div class="scrim" id="scrim"><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
 <div class="toast" id="toast"></div>
+<div class="lock" id="lock" role="dialog" aria-modal="true" aria-label="Pantalla bloqueada"><div class="gate-card">
+  <img id="lockLogo" alt="GemaFinanzy">
+  <h1>Bloqueado</h1>
+  <p>Escribe tu PIN para continuar.</p>
+  <input class="inp num" id="lockPin" type="password" inputmode="numeric" maxlength="6" autocomplete="off" aria-label="PIN" style="text-align:center;font-size:24px;letter-spacing:.4em">
+  <div class="gate-msg" id="lockMsg" role="status"></div>
+  <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px"><button class="btn primary" data-act="lockGo">Desbloquear</button><button class="btn" id="lockBio" data-act="lockBio">Huella o rostro</button></div>
+  <div class="gate-foot"><button class="btn ghost sm" id="lockForgot" data-act="forgotPin">Olvidé mi PIN</button></div>
+</div></div>
 <div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle"><div class="gate-card">
   <img id="gateLogo" alt="GemaFinanzy">
   <h1 id="gateTitle">GemaFinanzy</h1>
@@ -399,6 +417,7 @@ const IC={
   negocios:'<path d="M4 9l1.2-5h13.6L20 9M4 9v11h16V9M4 9h16M9 20v-6h6v6"/>',
   patrimonio:'<path d="M3 20h18M6 16l4-5 3 3 6-8M15 6h4v4"/>',
   ajustes:'<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
+  mic:'<path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3"/>',
   mas:'<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
   up:'<path d="M12 19V5M5 12l7-7 7 7"/>',down:'<path d="M12 5v14M19 12l-7 7-7-7"/>',swap:'<path d="M7 7h13l-4-4M17 17H4l4 4"/>',
   sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
@@ -601,12 +620,13 @@ async function pullNow(){
   }catch(e){store.mode='local';store.err='Sin conexión con tu cuenta'}
   setSync();
 }
-function signOut(){
-  if(!confirm('¿Cerrar sesión? Los datos guardados en este dispositivo se borrarán (siguen guardados en tu cuenta).'))return;
+function signOut(skipAsk){
+  if(!skipAsk&&!confirm('¿Cerrar sesión? Los datos guardados en este dispositivo se borrarán (siguen guardados en tu cuenta).'))return;
   if(store.mode!=='cloud'&&S.updated&&!confirm('Hay cambios sin sincronizar que se perderían. ¿Cerrar sesión de todos modos?'))return;
   try{google.accounts.id.disableAutoSelect()}catch(e){}
   clearAuth();
-  try{localStorage.removeItem(LKEY);localStorage.removeItem(LASTKEY)}catch(e){}
+  try{localStorage.removeItem(LKEY);localStorage.removeItem(LASTKEY);localStorage.removeItem(PINKEY)}catch(e){}
+  if(typeof hideLock==='function')hideLock();
   S=normalize(null);_nf=null;applyTheme();render();setSync();
   showGate('Sesión cerrada.',true);
 }
@@ -984,28 +1004,43 @@ function vAjustes(){
   const chipList=(k)=>`<div class="chips">${S.cats[k].map((c,i)=>`<span class="chip">${esc(c)}<button data-act="delCat" data-k="${k}" data-i="${i}" aria-label="Quitar ${esc(c)}">${svg('x',2.4)}</button></span>`).join('')}</div>
     <div class="addrow"><input class="inp" id="newCat-${k}" placeholder="Nueva categoría"><button class="btn" data-act="addCat" data-k="${k}">Agregar</button></div>`;
   const hasDemo=S.tx.some(t=>t.demo);
-  return `<div class="page-head"><div><h1>Ajustes</h1><p class="sub">Personaliza categorías, negocios y respaldos.</p></div></div>
+  const pc=pinCfg();
+  const step=(n,t)=>`<li class="stp"><span class="stp-n">${n}</span><span>${t}</span></li>`;
+  const secBtns=!canPin()?`<p class="muted" style="font-size:13px;margin:0">El bloqueo con PIN no está disponible en este navegador.</p>`
+    :pc?`<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="pinNew">Cambiar PIN</button><button class="btn danger" data-act="pinRemove">Quitar PIN</button>${BIO_OK?(pc.bio?`<button class="btn" data-act="bioOff">Desactivar huella o rostro</button>`:`<button class="btn" data-act="bioOn">Usar huella o rostro</button>`):''}</div>`
+    :`<button class="btn primary" data-act="pinNew">Crear PIN</button>`;
+  return `<div class="page-head"><div><h1>Ajustes</h1><p class="sub">Configura tu app, importa tu historial y protege tu información.</p></div></div>
   <div class="grid">
+    <section class="panel c12"><div class="panel-h"><h3>Empieza aquí: configura y carga tu historial</h3></div>
+      <ol class="steps">
+        ${step(1,'<b>Define tu estructura.</b> En esta pantalla ajusta tus ámbitos (personal y negocios) y tus categorías de gasto e ingreso. En <b>Billeteras</b> ponle nombre a tus cuentas, tarjetas y cajas, y su saldo inicial.')}
+        ${step(2,'<b>Descarga la plantilla.</b> Trae tus billeteras, categorías y ámbitos como listas desplegables para llenar más fácil.')}
+        ${step(3,'<b>Llénala</b> con los gastos e ingresos que ya hayas tenido. Ábrela en Excel, o súbela a Google Drive y ábrela con Hojas de cálculo.')}
+        ${step(4,'<b>Impórtala.</b> Descarga la hoja «Movimientos» como CSV (Archivo, Descargar, Valores separados por comas) y súbela aquí. Te mostrará un resumen antes de importar.')}
+        ${step(5,'<b>Listo.</b> Desde ahora registra todo en la app; ya no necesitas la plantilla.')}
+      </ol>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn primary" data-act="tplXlsx">Descargar plantilla (Excel / Sheets)</button><button class="btn" data-act="importCsv">Importar CSV</button><input type="file" id="importCsvFile" accept=".csv,text/csv" hidden></div>
+    </section>
     <section class="panel c6"><div class="panel-h"><h3>Ámbitos: personal y negocios</h3></div>
-      <p class="muted" style="margin:0 0 12px;font-size:13.5px">Cada ingreso y gasto se asigna a un ámbito. Marca como negocio los que quieras ver en la sección Negocios.</p>
-      <div class="set-list">${S.scopes.map((s,i)=>`<div class="set-item"><span class="grow">${esc(s.name)}</span><label class="switch"><input type="checkbox" data-scope-biz="${i}" ${s.biz?'checked':''}> Negocio</label>${i>0?`<button class="btn sm ghost danger" data-act="delScope" data-i="${i}">Quitar</button>`:''}</div>`).join('')}</div>
+      <p class="muted" style="margin:0 0 12px;font-size:13.5px">Cada ingreso y gasto se asigna a un ámbito. Puedes cambiarles el nombre directamente aquí y se actualiza en todos tus movimientos. Marca como negocio los que quieras ver en la sección Negocios.</p>
+      <div class="set-list">${S.scopes.map((s,i)=>`<div class="set-item">${i>0?`<input class="inp grow" data-scope-name="${i}" value="${esc(s.name)}" maxlength="40" aria-label="Nombre del ámbito">`:`<span class="grow">${esc(s.name)}</span>`}<label class="switch"><input type="checkbox" data-scope-biz="${i}" ${s.biz?'checked':''}> Negocio</label>${i>0?`<button class="btn sm ghost danger" data-act="delScope" data-i="${i}">Quitar</button>`:''}</div>`).join('')}</div>
       <div class="addrow"><input class="inp" id="newScope" placeholder="Nombre del negocio o ámbito"><button class="btn" data-act="addScope">Agregar</button></div></section>
+    <section class="panel c6"><div class="panel-h"><h3>Categorías de gasto</h3></div>${chipList('gasto')}</section>
+    <section class="panel c6"><div class="panel-h"><h3>Categorías de ingreso</h3></div>${chipList('ingreso')}</section>
+    <section class="panel c6"><div class="panel-h"><h3>Seguridad y cuenta</h3></div>
+      <p class="muted" style="margin:0 0 10px;font-size:13.5px">Protege tu información con un PIN${BIO_OK?' o con el desbloqueo de tu dispositivo':''}. Se pide al abrir la app y al volver a ella después de unos segundos.</p>
+      ${secBtns}
+      ${CLOUD&&store.user?`<div class="panel-h" style="margin:22px 0 10px"><h3>Cuenta</h3></div>
+      <p class="muted" style="margin:0 0 10px;font-size:13.5px">${esc(store.user.email)} · ${esc(syncLabel())}</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="syncNow">Sincronizar ahora</button><button class="btn danger" data-act="signOut">Cerrar sesión</button></div>`:''}
+      <p class="muted" style="font-size:12.5px;margin:12px 0 0">${CLOUD?'Tus datos se guardan en tu cuenta y se sincronizan entre tus dispositivos. Además queda una copia en este dispositivo para usar la app sin internet.':'Tus datos se guardan en este dispositivo.'}</p></section>
     <section class="panel c6"><div class="panel-h"><h3>Apariencia y moneda</h3></div>
       <div class="row2"><label class="field"><span>Tema</span><select class="inp" id="setTheme"><option value="dark" ${S.theme==='dark'?'selected':''}>Oscuro</option><option value="light" ${S.theme==='light'?'selected':''}>Claro</option><option value="auto" ${S.theme==='auto'?'selected':''}>Según el dispositivo</option></select></label>
       <label class="field"><span>Moneda</span><select class="inp" id="setCur">${['USD','EUR','COP','PEN','MXN'].map(c=>`<option ${S.currency===c?'selected':''}>${c}</option>`).join('')}</select></label></div>
       <div class="panel-h" style="margin:22px 0 10px"><h3>Respaldo</h3></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="exportJson">Descargar respaldo</button><button class="btn" data-act="exportCsv">Exportar movimientos ${S.year} (CSV)</button><button class="btn" data-act="importJson">Restaurar respaldo</button><input type="file" id="importFile" accept=".json,application/json" hidden></div>
-      <div class="panel-h" style="margin:22px 0 10px"><h3>Importar desde Google Sheets</h3></div>
-      <p class="muted" style="margin:0 0 10px;font-size:13.5px">Registra tus movimientos en la plantilla de Sheets, descárgala como CSV (Archivo → Descargar → Valores separados por comas) y súbela aquí.</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="importCsv">Importar CSV</button><input type="file" id="importCsvFile" accept=".csv,text/csv" hidden></div>
       <div class="panel-h" style="margin:22px 0 10px"><h3>Datos</h3></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">${hasDemo?`<button class="btn" data-act="clearDemo">Quitar datos de ejemplo</button>`:`<button class="btn" data-act="loadDemo">Cargar datos de ejemplo</button>`}<button class="btn danger" data-act="wipe">Borrar todo</button></div>
-      ${CLOUD&&store.user?`<div class="panel-h" style="margin:22px 0 10px"><h3>Cuenta</h3></div>
-      <p class="muted" style="margin:0 0 10px;font-size:13.5px">${esc(store.user.email)} · ${esc(syncLabel())}</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="syncNow">Sincronizar ahora</button><button class="btn danger" data-act="signOut">Cerrar sesión</button></div>`:''}
-      <p class="muted" style="font-size:12.5px;margin:12px 0 0">${CLOUD?'Tus datos se guardan en tu cuenta y se sincronizan entre tus dispositivos. Además queda una copia en este dispositivo para usar la app sin internet.':'Tus datos se guardan en este dispositivo.'}</p></section>
-    <section class="panel c6"><div class="panel-h"><h3>Categorías de gasto</h3></div>${chipList('gasto')}</section>
-    <section class="panel c6"><div class="panel-h"><h3>Categorías de ingreso</h3></div>${chipList('ingreso')}</section>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${hasDemo?`<button class="btn" data-act="clearDemo">Quitar datos de ejemplo</button>`:`<button class="btn" data-act="loadDemo">Cargar datos de ejemplo</button>`}<button class="btn danger" data-act="wipe">Borrar todo</button></div></section>
   </div>`;
 }
 
@@ -1161,9 +1196,13 @@ function csv(){
   S.tx.filter(t=>t.date.startsWith(S.year+'')).sort((a,b)=>a.date<b.date?-1:1).forEach(t=>rows.push([t.date,t.type,String(t.amount).replace('.',','),W(t.wallet)?.name||'',W(t.to)?.name||'',t.category||'',t.type==='transfer'?'':scopeOf(t),t.note||'']));
   return '\ufeff'+rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(';')).join('\n');
 }
+const norm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+
+/* ---------- importar CSV ---------- */
 function parseCsvRows(text){
-  text=text.replace(/^\ufeff/,'');
-  const delim=(text.split('\n')[0]||'').includes(';')?';':',';
+  text=text.replace(/^﻿/,'');
+  const first=(text.split('\n')[0]||'');
+  const delim=first.includes(';')?';':(first.includes('\t')?'\t':',');
   return text.split(/\r\n|\n/).filter(l=>l.length).map(line=>{
     const cells=[];let cur='',inQ=false;
     for(let i=0;i<line.length;i++){
@@ -1175,41 +1214,371 @@ function parseCsvRows(text){
     return cells.map(c=>c.trim());
   });
 }
+function csvAmount(s){
+  s=String(s||'').trim().replace(/[^\d.,-]/g,'');
+  if(!s)return NaN;
+  const lc=s.lastIndexOf(','),ld=s.lastIndexOf('.');
+  if(lc>=0&&ld>=0)s=lc>ld?s.replace(/\./g,'').replace(',','.'):s.replace(/,/g,'');
+  else if(lc>=0)s=s.replace(',','.');
+  else if(ld>=0&&((s.match(/\./g)||[]).length>1||/^\d{1,3}\.\d{3}$/.test(s)))s=s.replace(/\./g,'');
+  const n=parseFloat(s);return isFinite(n)?n:NaN;
+}
+function csvDate(s){
+  s=String(s||'').trim();let y,mo,d,m;
+  if(m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)){y=+m[1];mo=+m[2];d=+m[3]}
+  else if(m=s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})$/)){d=+m[1];mo=+m[2];y=+m[3];if(y<100)y+=2000}
+  else return '';
+  if(mo<1||mo>12||d<1||d>31||y<2000||y>2100)return '';
+  return y+'-'+pad(mo)+'-'+pad(d);
+}
+function csvType(s){
+  const t=norm(s);
+  if(/^(gasto|egreso|salida)/.test(t))return 'gasto';
+  if(/^(ingreso|entrada)/.test(t))return 'ingreso';
+  if(/^transfer/.test(t))return 'transfer';
+  return '';
+}
+const txKey=t=>[t.date,t.type,round2(+t.amount),t.wallet,t.to||'',norm(t.category||''),t.type==='transfer'?'':scopeOf(t),norm(t.note||'')].join('|');
 function importCsvTx(text){
   const rows=parseCsvRows(text);
-  if(!rows.length)return toast('El archivo est\u00e1 vac\u00edo.');
+  if(!rows.length)return toast('El archivo está vacío.');
   const start=/fecha/i.test(rows[0][0]||'')?1:0;
-  const findWallet=name=>{
-    name=(name||'').trim();if(!name)return null;
-    let w=S.wallets.find(w=>w.name.toLowerCase()===name.toLowerCase());
-    if(!w){w={id:'w-'+uid(),name,type:'efectivo',initial:0,color:WCOLORS[S.wallets.length%WCOLORS.length]};S.wallets.push(w)}
-    return w;
-  };
-  let added=0,skipped=0;
+  const wByName=n=>{n=norm(n);return n?S.wallets.find(w=>norm(w.name)===n):null};
+  const sByName=n=>{n=norm(n);return S.scopes.find(s=>norm(s.name)===n)};
+  const seen=new Set(S.tx.map(txKey));
+  const add=[],newCats={gasto:new Set(),ingreso:new Set()},bad={wallet:new Set(),scope:new Set()};
+  let invalid=0,dup=0;
   for(let i=start;i<rows.length;i++){
-    const r=rows[i];if(r.length<3||!r[0])continue;
-    const [date,type,amountStr,walletName,toName,category,scope,note]=r;
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!['gasto','ingreso','transfer'].includes(type)){skipped++;continue}
-    const amount=parseAmt(amountStr);
-    if(!(amount>0)){skipped++;continue}
-    const wallet=findWallet(walletName);
-    if(!wallet){skipped++;continue}
-    const rec={id:uid(),type,amount,date,wallet:wallet.id,note:note||'',created:Date.now()};
+    const r=rows[i];
+    if(r.every(c=>!c))continue;
+    const [d0,t0,a0,w0,to0,cat0,sc0,note]=r;
+    const date=csvDate(d0),type=csvType(t0),amount=csvAmount(a0);
+    if(!date||!type||!(amount>0)){invalid++;continue}
+    const w=wByName(w0);
+    if(!w){bad.wallet.add(w0||'(vacío)');continue}
+    const rec={id:uid(),type,amount:round2(amount),date,wallet:w.id,note:note||'',created:Date.now()};
     if(type==='transfer'){
-      const to=findWallet(toName);
-      if(!to){skipped++;continue}
+      const to=wByName(to0);
+      if(!to||to.id===w.id){bad.wallet.add(to0||'(vacío)');continue}
       rec.to=to.id;
     }else{
-      const catKey=type==='ingreso'?'ingreso':'gasto';
-      rec.category=category||'';rec.scope=scope||'Personal';
-      if(rec.category&&!S.cats[catKey].includes(rec.category))S.cats[catKey].push(rec.category);
-      if(rec.scope&&!S.scopes.find(s=>s.name===rec.scope))S.scopes.push({name:rec.scope,biz:false});
+      const sc=sc0?sByName(sc0):S.scopes[0];
+      if(!sc){bad.scope.add(sc0);continue}
+      rec.scope=sc.name;rec.category=cat0||'';
+      const key=type==='ingreso'?'ingreso':'gasto';
+      if(rec.category){const ex=S.cats[key].find(c=>norm(c)===norm(rec.category));if(ex)rec.category=ex;else newCats[key].add(rec.category)}
     }
-    S.tx.push(rec);added++;
+    const k=txKey(rec);
+    if(seen.has(k)){dup++;continue}
+    seen.add(k);add.push(rec);
   }
-  commit();
-  toast(added+' movimiento(s) importado(s)'+(skipped?', '+skipped+' omitido(s)':''));
+  const lines=[add.length+' movimiento(s) listos para importar.'];
+  if(dup)lines.push(dup+' repetido(s) que ya existen (se omiten).');
+  if(invalid)lines.push(invalid+' fila(s) con fecha, tipo o monto no válido (se omiten).');
+  if(bad.wallet.size)lines.push('Billeteras que no existen en la app: '+[...bad.wallet].slice(0,4).join(', ')+' (se omiten esas filas).');
+  if(bad.scope.size)lines.push('Ámbitos que no existen en la app: '+[...bad.scope].slice(0,4).join(', ')+' (se omiten esas filas).');
+  const nc=[...newCats.gasto,...newCats.ingreso];
+  if(nc.length)lines.push('Se crearán categorías nuevas: '+nc.slice(0,6).join(', ')+(nc.length>6?'…':''));
+  if(!add.length)return alert(lines.join('\n'));
+  if(!confirm(lines.join('\n')+'\n\n¿Importar?'))return;
+  newCats.gasto.forEach(c=>S.cats.gasto.push(c));
+  newCats.ingreso.forEach(c=>S.cats.ingreso.push(c));
+  S.tx.push(...add);
+  commit();toast(add.length+' movimiento(s) importados');
 }
+
+/* ---------- plantilla de movimientos (.xlsx) ---------- */
+const crcT=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc32(b){let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=crcT[(c^b[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0}
+function zipStore(files){
+  const enc=new TextEncoder(),chunks=[],cd=[];let off=0;
+  const w16=n=>[n&255,n>>8&255],w32=n=>[n&255,n>>8&255,n>>16&255,n>>>24&255];
+  for(const f of files){
+    const nm=enc.encode(f.name),d=enc.encode(f.data),c=crc32(d);
+    const lh=[0x50,0x4b,3,4,...w16(20),...w16(0),...w16(0),...w16(0),...w16(33),...w32(c),...w32(d.length),...w32(d.length),...w16(nm.length),...w16(0)];
+    chunks.push(new Uint8Array(lh),nm,d);
+    cd.push(new Uint8Array([0x50,0x4b,1,2,...w16(20),...w16(20),...w16(0),...w16(0),...w16(0),...w16(33),...w32(c),...w32(d.length),...w32(d.length),...w16(nm.length),...w16(0),...w16(0),...w16(0),...w16(0),...w32(0),...w32(off)]),nm);
+    off+=lh.length+nm.length+d.length;
+  }
+  const cdSize=cd.reduce((s,a)=>s+a.length,0);
+  const end=new Uint8Array([0x50,0x4b,5,6,...w16(0),...w16(0),...w16(files.length),...w16(files.length),...w32(cdSize),...w32(off),...w16(0)]);
+  return new Blob([...chunks,...cd,end],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+const xe=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function sheetXml(rows,widths,header,validations){
+  const sd=rows.map((r,ri)=>'<row r="'+(ri+1)+'">'+r.map((v,ci)=>v===''||v==null?'':'<c r="'+String.fromCharCode(65+ci)+(ri+1)+'" t="inlineStr"'+(header&&ri===0?' s="1"':'')+'><is><t xml:space="preserve">'+xe(v)+'</t></is></c>').join('')+'</row>').join('');
+  const cols=widths.map((w,i)=>'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>').join('');
+  const pane=header?'<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/>':'';
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0">'+pane+'</sheetView></sheetViews><cols>'+cols+'</cols><sheetData>'+sd+'</sheetData>'+(validations||'')+'</worksheet>';
+}
+function buildTemplate(){
+  const wal=S.wallets.map(w=>w.name),cg=S.cats.gasto,ci=S.cats.ingreso;
+  const all=[...new Set([...cg,...ci])],sc=S.scopes.map(s=>s.name);
+  const nMax=Math.max(wal.length,cg.length,ci.length,all.length,sc.length);
+  const listas=[['Billeteras','Categorías de gasto','Categorías de ingreso','Todas las categorías','Ámbitos']];
+  for(let i=0;i<nMax;i++)listas.push([wal[i]||'',cg[i]||'',ci[i]||'',all[i]||'',sc[i]||'']);
+  const rng=(col,n)=>'Listas!$'+col+'$2:$'+col+'$'+(Math.max(n,1)+1);
+  const dv=(sq,f)=>'<dataValidation type="list" errorStyle="warning" allowBlank="1" showInputMessage="1" showErrorMessage="1" errorTitle="Valor distinto" error="Ese valor no está en la lista de la app. Revísalo antes de importar." sqref="'+sq+'"><formula1>'+f+'</formula1></dataValidation>';
+  const vals='<dataValidations count="5">'+dv('B2:B1000','"Gasto,Ingreso,Transferencia"')+dv('D2:D1000',rng('A',wal.length))+dv('E2:E1000',rng('A',wal.length))+dv('F2:F1000',rng('D',all.length))+dv('G2:G1000',rng('E',sc.length))+'</dataValidations>';
+  const mov=[['Fecha','Tipo','Monto','Billetera','Hacia','Categoría','Ámbito','Detalle']];
+  const ins=[['CÓMO USAR ESTA PLANTILLA'],[''],
+    ['1. En la hoja "Movimientos" escribe una fila por cada gasto, ingreso o transferencia que ya hayas hecho.'],
+    ['2. Fecha: día/mes/año. Ejemplo: 15/01/2026.'],
+    ['3. Tipo, Billetera, Categoría y Ámbito se eligen de la lista desplegable. Los nombres deben coincidir con los de la app.'],
+    ['4. Monto: solo el número, sin el signo $. Ejemplo: 25,50'],
+    ['5. Hacia: solo para Transferencias (ahorro, pago de tarjeta, retiro). En gastos e ingresos déjalo vacío.'],
+    ['6. Ámbito: si lo dejas vacío se usa Personal.'],
+    ['7. Cuando termines, estando en la hoja "Movimientos": Archivo > Descargar > Valores separados por comas (.csv).'],
+    ['8. En la app: Ajustes > Importar CSV. Antes de importar te mostrará un resumen.'],
+    [''],
+    ['Si cambias nombres de billeteras, categorías o ámbitos en la app, vuelve a descargar esta plantilla.']];
+  const files=[
+    {name:'[Content_Types].xml',data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet3.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'},
+    {name:'_rels/.rels',data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'},
+    {name:'xl/workbook.xml',data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Movimientos" sheetId="1" r:id="rId1"/><sheet name="Listas" sheetId="2" r:id="rId2"/><sheet name="Instrucciones" sheetId="3" r:id="rId3"/></sheets></workbook>'},
+    {name:'xl/_rels/workbook.xml.rels',data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet3.xml"/><Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'},
+    {name:'xl/styles.xml',data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0F6E78"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'},
+    {name:'xl/worksheets/sheet1.xml',data:sheetXml(mov,[14,16,12,24,24,30,20,40],true,vals)},
+    {name:'xl/worksheets/sheet2.xml',data:sheetXml(listas,[26,30,30,30,24],true,'')},
+    {name:'xl/worksheets/sheet3.xml',data:sheetXml(ins,[120],false,'')}
+  ];
+  return zipStore(files);
+}
+
+/* ---------- registro rápido (texto o voz) ---------- */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+const MESN={enero:0,febrero:1,marzo:2,abril:3,mayo:4,junio:5,julio:6,agosto:7,septiembre:8,setiembre:8,octubre:9,noviembre:10,diciembre:11};
+const NUMW={un:1,una:1,uno:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8,nueve:9,diez:10,once:11,doce:12,trece:13,catorce:14,quince:15,dieciseis:16,diecisiete:17,dieciocho:18,diecinueve:19,veinte:20,veintiuno:21,veintidos:22,veintitres:23,veinticuatro:24,veinticinco:25,veintiseis:26,veintisiete:27,veintiocho:28,veintinueve:29,treinta:30,cuarenta:40,cincuenta:50,sesenta:60,setenta:70,ochenta:80,noventa:90,cien:100,ciento:100,doscientos:200,trescientos:300,cuatrocientos:400,quinientos:500,seiscientos:600,setecientos:700,ochocientos:800,novecientos:900};
+function wordsToNumber(t){
+  const toks=t.split(/[^a-z0-9]+/).filter(Boolean);
+  for(let i=0;i<toks.length;i++){
+    const w0=toks[i];
+    if(!(w0 in NUMW)&&w0!=='mil')continue;
+    if((w0==='un'||w0==='una'||w0==='uno')&&toks[i+1]!=='mil')continue;
+    let total=0,cur=0,used=false;
+    for(let j=i;j<toks.length;j++){
+      const w=toks[j];
+      if(w==='y'&&used&&(toks[j+1] in NUMW))continue;
+      if(w==='mil'){total+=(cur||1)*1000;cur=0;used=true;continue}
+      if(w in NUMW){cur+=NUMW[w];used=true;continue}
+      break;
+    }
+    if(total+cur>0)return total+cur;
+  }
+  return NaN;
+}
+function quickAmount(n){
+  let t=n.replace(/\b\d{1,2}\s*\/\s*\d{1,2}(\s*\/\s*\d{2,4})?\b/g,' ').replace(/\b(?:el\s+)?(?:dia\s+)?\d{1,2}\s+de\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)\b/g,' ').replace(/\bel\s+(?:dia\s+)?\d{1,2}\b/g,' ');
+  let m=t.match(/(\d+)\s*(?:con|coma|punto)\s*(\d{2})\b/);
+  if(m)return round2(parseFloat(m[1]+'.'+m[2]));
+  m=t.match(/\d+(?:[.,]\d+)*/);
+  if(m){const v=csvAmount(m[0]);if(v>0)return round2(v)}
+  const w=wordsToNumber(t);
+  return w>0?w:NaN;
+}
+const WTYPE_RX={efectivo:/\befectivo\b/,banco:/\b(banco|cuenta|debito)\b/,ahorro:/\bahorros?\b/,inversion:/\b(inversion|inversiones|invertir|invertido)\b/,credito:/\b(tarjeta|credito)\b/};
+function walletMentions(n){
+  const found=[];
+  for(const w of S.wallets){const nm=norm(w.name);const i=nm?n.indexOf(nm):-1;if(i>=0)found.push({i,w,len:nm.length})}
+  for(const type in WTYPE_RX){
+    const m=WTYPE_RX[type].exec(n);if(!m)continue;
+    const w=S.wallets.find(x=>x.type===type);
+    if(w&&!found.some(f=>f.w.id===w.id||(m.index>=f.i&&m.index<f.i+f.len)))found.push({i:m.index,w,len:m[0].length});
+  }
+  found.sort((a,b)=>a.i-b.i);
+  const out=[];for(const f of found)if(!out.some(o=>o.id===f.w.id))out.push(f.w);
+  return out;
+}
+const CATSYN={
+  gasto:[['aliment',/\b(super|supermercado|comida|almuerzo|cena|desayuno|restaurante|mercado|snack|pizza|hamburguesa|fruta|verdura|carne|pan)\b/],['transporte',/\b(gasolina|combustible|taxi|bus|uber|pasaje|peaje|parqueo|moto|carrera)\b/],['luz',/\b(luz|electricidad|energia)\b/],['agua',/\bagua\b/],['internet',/\b(internet|wifi)\b/],['telefono',/\b(celular|telefono|recarga|plan)\b/],['gas',/\b(gas|cilindro)\b/],['arriendo',/\b(arriendo|alquiler|renta|hipoteca)\b/],['medicina',/\b(medicina|medicinas|doctor|medico|farmacia|salud|consulta|examen)\b/],['educacion',/\b(colegio|universidad|curso|pension|matricula|escuela|libros)\b/],['ropa',/\b(ropa|zapatos|camisa|pantalon|vestido)\b/],['entretenimiento',/\b(cine|netflix|spotify|streaming|juego|salida|fiesta|concierto|disney|hbo)\b/],['herramientas',/\b(herramienta|herramientas|repuesto|repuestos|taller)\b/],['deudas',/\b(deuda|prestamo|cuota)\b/],['impuestos',/\b(impuesto|impuestos|tramite|multa|predial)\b/]],
+  ingreso:[['sueldo',/\b(sueldo|salario|rol|quincena)\b/],['incentivo',/\b(incentivo|bono|comision|comisiones)\b/],['ventas',/\b(venta|ventas|vendi)\b/],['servicios',/\b(servicio|servicios|honorarios)\b/],['reembolso',/\b(reembolso|devolucion)\b/]]
+};
+function quickCategory(n,type,scopeName){
+  const key=type==='ingreso'?'ingreso':'gasto',cats=S.cats[key];
+  let best='',score=0;
+  for(const c of cats){
+    const toks=norm(c).split(/[^a-z0-9]+/).filter(t=>t.length>=4&&!['gastos','otros','otras','negocio'].includes(t));
+    let s=0;for(const t of toks){if(new RegExp('\\b'+t.slice(0,Math.max(4,t.length-1))).test(n))s++}
+    if(s>score){score=s;best=c}
+  }
+  if(best)return best;
+  for(const [frag,rx] of CATSYN[key]){
+    if(!rx.test(n))continue;
+    const c=cats.find(x=>norm(x).includes(frag));
+    if(c)return c;
+  }
+  if(scopeName&&scopeName!==S.scopes[0].name){const c=cats.find(x=>norm(x).includes(norm(scopeName)));if(c)return c}
+  return '';
+}
+function quickParse(text){
+  const n=norm(text);
+  const p={type:'gasto',amount:quickAmount(n),note:text.trim().replace(/^./,c=>c.toUpperCase())};
+  const ws=walletMentions(n);
+  const cardPay=/\b(pague|pago|abone|abono|cancele)\s+(?:de\s+)?(?:la|mi|el)\s+(?:pago\s+de\s+)?tarjeta|\bpago\s+de\s+(?:la\s+)?tarjeta/.test(n);
+  const transferV=/\b(transferi|transferimos|pase|movi|deposite|retire|ahorre|inverti)\b/.test(n);
+  const strongIn=/\b(cobre|recibi|me pagaron|me depositaron|me transfirieron|me llego|ingreso|ingrese|gane|vendi)\b/.test(n);
+  const weakIn=/\b(sueldo|salario|venta|quincena)\b/.test(n);
+  const spendV=/\b(gaste|compre|pague|abone|pago)\b/.test(n);
+  if(cardPay||transferV)p.type='transfer';
+  else if(strongIn||(weakIn&&!spendV))p.type='ingreso';
+  let d=new Date();
+  if(/\b(anteayer|antier)\b/.test(n))d.setDate(d.getDate()-2);
+  else if(/\bayer\b/.test(n))d.setDate(d.getDate()-1);
+  else{
+    const m=n.match(/\bel\s+(?:dia\s+)?(\d{1,2})(?:\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre))?\b/);
+    if(m&&+m[1]>=1&&+m[1]<=31){const mo=m[2]?MESN[m[2]]:d.getMonth();d=new Date(d.getFullYear(),mo,Math.min(+m[1],dim(d.getFullYear(),mo)))}
+  }
+  p.date=ymd(d.getFullYear(),d.getMonth(),d.getDate());
+  const byType=t=>S.wallets.find(w=>w.type===t);
+  if(p.type==='transfer'){
+    let from=null,to=null;
+    const card=byType('credito');
+    if(cardPay&&card){
+      to=ws.find(w=>w.type==='credito')||card;
+      from=ws.find(w=>w.id!==to.id&&w.type!=='credito')||byType('banco');
+    }else{
+      from=ws[0]||null;to=ws[1]||null;
+      if(/\bahorre\b/.test(n)){to=byType('ahorro')||to;from=ws.find(w=>w!==to)||byType('banco')}
+      else if(/\binverti/.test(n)){to=byType('inversion')||to;from=ws.find(w=>w!==to)||byType('banco')}
+      else if(/\bretire\b/.test(n)){from=ws[0]||byType('banco');to=byType('efectivo')}
+      else if(/\bdeposite\b/.test(n)){from=byType('efectivo');to=ws[0]||byType('banco')}
+    }
+    p.wallet=from?from.id:'';p.to=to&&from&&to.id!==from.id?to.id:'';
+  }else{
+    const w=ws[0]||byType('banco')||S.wallets[0];
+    p.wallet=w?w.id:'';
+    const sc=S.scopes.find(s=>n.includes(norm(s.name)));
+    p.scope=sc?sc.name:(w&&w.type==='negocio'&&w.scope?w.scope:S.scopes[0].name);
+    p.category=quickCategory(n,p.type,p.scope);
+  }
+  return p;
+}
+function openQuick(){
+  openSheet(`<div class="sheet-h"><h2>Registro rápido</h2><button class="btn icon-btn ghost" data-act="close" aria-label="Cerrar">${svg('x',2.2)}</button></div>
+  <p class="muted" style="margin:0;font-size:13.5px">Escribe o dicta lo que pasó. Revisarás los datos antes de guardar.</p>
+  <textarea class="inp" id="qText" rows="3" placeholder="Ej.: Gasté 25 en el supermercado con la tarjeta"></textarea>
+  <div class="hint info">Ejemplos: «Cobré 450 de sueldo» · «Ayer pagué 30 de luz en efectivo» · «Transferí 100 del banco a ahorro» · «Pagué la tarjeta 80»</div>
+  <div class="sheet-f">${SR?`<button class="btn" data-act="qMic" id="qMic">${svg('mic')}Dictar</button>`:''}<span class="spacer"></span><button class="btn primary" data-act="qGo">Interpretar</button></div>`);
+  setTimeout(()=>{const f=$('#qText');if(f&&matchMedia('(min-width:861px)').matches)f.focus()},60);
+}
+function quickGo(){
+  const el=$('#qText');const text=el?el.value.trim():'';
+  if(!text)return toast('Escribe o dicta el movimiento.');
+  const p=quickParse(text);
+  if(!(p.amount>0))return toast('No encontré el monto. Ejemplo: «gasté 25 en comida».');
+  openTx(null,p);
+  toast('Revisa los datos y pulsa Guardar');
+}
+let recog=null;
+function quickMic(){
+  if(!SR)return;
+  const btn=$('#qMic');
+  if(recog){try{recog.stop()}catch(e){}return}
+  recog=new SR();recog.lang='es-EC';recog.interimResults=true;recog.continuous=false;
+  recog.onresult=e=>{let t='';for(const r of e.results)t+=r[0].transcript;const el=$('#qText');if(el)el.value=t};
+  recog.onerror=e=>{toast(e.error==='not-allowed'?'Permite el micrófono para dictar.':'No se pudo usar el micrófono.')};
+  recog.onend=()=>{recog=null;if(btn)btn.classList.remove('primary');const el=$('#qText');if(el&&el.value.trim())quickGo()};
+  try{recog.start();if(btn)btn.classList.add('primary')}catch(e){recog=null}
+}
+
+/* ---------- ámbitos ---------- */
+function renameScope(i,val){
+  const s=S.scopes[i],v=String(val||'').trim();
+  if(!s||i===0)return render();
+  if(!v||v===s.name)return render();
+  if(S.scopes.some((x,k)=>k!==i&&norm(x.name)===norm(v))){toast('Ya existe un ámbito con ese nombre.');return render()}
+  const old=s.name;
+  s.name=v;
+  S.tx.forEach(t=>{if(t.scope===old)t.scope=v});
+  S.wallets.forEach(w=>{if(w.scope===old)w.scope=v;if(w.type==='negocio'&&w.name===old)w.name=v});
+  if(UI.scope===old)UI.scope=v;
+  commit();toast('Nombre actualizado');
+}
+
+/* ---------- bloqueo con PIN / huella ---------- */
+const PINKEY='gf-pin-v1';
+const pinCfg=()=>{try{return JSON.parse(localStorage.getItem(PINKEY)||'null')}catch(e){return null}};
+const b64=u8=>btoa(String.fromCharCode(...u8));
+const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const canPin=()=>!!(window.crypto&&crypto.subtle);
+let BIO_OK=false;
+(async()=>{try{BIO_OK=!!(window.PublicKeyCredential&&await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable())}catch(e){}})();
+async function pinHash(pin,saltB64){
+  const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(pin),'PBKDF2',false,['deriveBits']);
+  const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt:unb64(saltB64),iterations:100000,hash:'SHA-256'},k,256);
+  return b64(new Uint8Array(bits));
+}
+async function pinOk(pin){const c=pinCfg();return !!c&&await pinHash(String(pin||''),c.salt)===c.hash}
+let locked=false,failCount=0,hiddenAt=0,lockUntil=+(localStorage.getItem('gf-lock-until')||0);
+function showLock(){
+  const c=pinCfg();if(!c)return;
+  locked=true;$('#lock').classList.add('open');
+  $('#lockPin').value='';$('#lockMsg').textContent='';
+  $('#lockBio').style.display=c.bio?'':'none';
+  $('#lockForgot').style.display=CLOUD?'':'none';
+  setTimeout(()=>{$('#lockPin').focus();if(c.bio)bioUnlock()},80);
+}
+function hideLock(){locked=false;failCount=0;$('#lock').classList.remove('open');$('#lockPin').blur()}
+async function tryPin(){
+  const c=pinCfg();if(!c)return hideLock();
+  const wait=lockUntil-Date.now();
+  if(wait>0){$('#lockPin').value='';return $('#lockMsg').textContent='Espera '+Math.ceil(wait/1000)+' s para reintentar.'}
+  const pin=$('#lockPin').value;
+  if(pin.length<4)return;
+  if(await pinOk(pin)){hideLock();return}
+  failCount++;$('#lockPin').value='';
+  if(failCount>=5){lockUntil=Date.now()+30000;failCount=0;try{localStorage.setItem('gf-lock-until',lockUntil)}catch(e){}$('#lockMsg').textContent='Demasiados intentos. Espera 30 s.'}
+  else $('#lockMsg').textContent='PIN incorrecto';
+}
+async function bioUnlock(){
+  const c=pinCfg();if(!c||!c.bio)return;
+  try{
+    await navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),allowCredentials:[{type:'public-key',id:unb64(c.bio),transports:['internal']}],userVerification:'required',timeout:60000}});
+    hideLock();
+  }catch(e){}
+}
+async function enableBio(){
+  const c=pinCfg();if(!c)return;
+  try{
+    const cred=await navigator.credentials.create({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),rp:{name:'GemaFinanzy'},user:{id:crypto.getRandomValues(new Uint8Array(16)),name:(store.user&&store.user.email)||'usuario',displayName:(store.user&&store.user.name)||'Usuario'},pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required',residentKey:'discouraged'},timeout:60000}});
+    c.bio=b64(new Uint8Array(cred.rawId));
+    localStorage.setItem(PINKEY,JSON.stringify(c));render();toast('Desbloqueo con huella o rostro activado');
+  }catch(e){toast('No se pudo activar el desbloqueo del dispositivo.')}
+}
+function disableBio(){const c=pinCfg();if(!c)return;c.bio=null;localStorage.setItem(PINKEY,JSON.stringify(c));render();toast('Huella o rostro desactivado')}
+function openPinSetup(){
+  const has=!!pinCfg();
+  openSheet(`<div class="sheet-h"><h2>${has?'Cambiar PIN':'Crear PIN'}</h2><button class="btn icon-btn ghost" data-act="close" aria-label="Cerrar">${svg('x',2.2)}</button></div>
+  <p class="muted" style="margin:0;font-size:13.5px">Elige un PIN de 4 a 6 números. Se pedirá al abrir la app y al volver a ella después de unos segundos. Es solo para este dispositivo.</p>
+  ${has?`<label class="field"><span>PIN actual</span><input class="inp num" id="pin0" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>`:''}
+  <label class="field"><span>Nuevo PIN</span><input class="inp num" id="pin1" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password"></label>
+  <label class="field"><span>Repite el PIN</span><input class="inp num" id="pin2" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password"></label>
+  <div class="sheet-f"><button class="btn" data-act="close">Cancelar</button><button class="btn primary" data-act="savePin">Guardar PIN</button></div>`);
+}
+async function savePin(){
+  const old=pinCfg();
+  if(old&&!(await pinOk($('#pin0').value)))return toast('El PIN actual no es correcto.');
+  const a=$('#pin1').value,b=$('#pin2').value;
+  if(!/^\d{4,6}$/.test(a))return toast('El PIN debe tener de 4 a 6 números.');
+  if(a!==b)return toast('Los PIN no coinciden.');
+  const salt=b64(crypto.getRandomValues(new Uint8Array(16)));
+  localStorage.setItem(PINKEY,JSON.stringify({salt,hash:await pinHash(a,salt),len:a.length,bio:old&&old.bio||null}));
+  closeSheet();render();toast('PIN guardado');
+}
+async function removePin(){
+  const p=prompt('Escribe tu PIN actual para quitarlo:');
+  if(p===null)return;
+  if(!(await pinOk(p)))return toast('El PIN no es correcto.');
+  localStorage.removeItem(PINKEY);render();toast('PIN quitado');
+}
+function forgotPin(){
+  if(!confirm('Para restablecer el PIN debes cerrar sesión y volver a entrar con Google. Tus datos siguen guardados en tu cuenta. ¿Continuar?'))return;
+  signOut(true);
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden')hiddenAt=Date.now();
+  else if(pinCfg()&&!locked&&hiddenAt&&Date.now()-hiddenAt>30000)showLock();
+});
 
 /* ---------- datos de ejemplo ---------- */
 function loadDemo(){
@@ -1282,15 +1651,27 @@ document.addEventListener('click',e=>{
     case 'delItem':if(confirm('¿Eliminar «'+ITEM.it.name+'»?')){S[ITEM.k]=S[ITEM.k].filter(x=>x.id!==ITEM.it.id);closeSheet();commit()}break;
     case 'pickBiz':UI.biz=d.v;render();break;
     case 'addCat':{const inp=$('#newCat-'+d.k);const v=inp.value.trim();if(!v)return;if(S.cats[d.k].includes(v))return toast('Esa categoría ya existe.');S.cats[d.k].push(v);commit();break;}
-    case 'delCat':S.cats[d.k].splice(+d.i,1);commit();break;
+    case 'delCat':{const nm=S.cats[d.k][+d.i];if(confirm('¿Quitar la categoría «'+nm+'» de la lista?\n\nLos movimientos que ya la usan no se borran; solo deja de aparecer para elegirla.')){S.cats[d.k].splice(+d.i,1);commit();toast('Categoría quitada')}break;}
     case 'addScope':{const v=$('#newScope').value.trim();if(!v)return;if(S.scopes.find(s=>s.name.toLowerCase()===v.toLowerCase()))return toast('Ese ámbito ya existe.');S.scopes.push({name:v,biz:true});commit();break;}
-    case 'delScope':{const s=S.scopes[+d.i];if(S.tx.some(t=>scopeOf(t)===s.name))return toast('Hay movimientos asignados a «'+s.name+'». Cámbialos antes de quitarlo.');S.scopes.splice(+d.i,1);commit();break;}
+    case 'delScope':{const s=S.scopes[+d.i];if(S.tx.some(t=>scopeOf(t)===s.name))return toast('Hay movimientos asignados a «'+s.name+'». Cámbialos antes de quitarlo.');if(confirm('¿Quitar el ámbito «'+s.name+'»?')){S.scopes.splice(+d.i,1);commit();toast('Ámbito quitado')}break;}
     case 'exportJson':download('gemafinanzy-respaldo-'+todayStr()+'.json',JSON.stringify(S,null,1));break;
     case 'exportCsv':download('movimientos-'+S.year+'.csv',csv());break;
     case 'importJson':$('#importFile').click();break;
     case 'importCsv':$('#importCsvFile').click();break;
     case 'syncNow':startSession().then(()=>{render();toast(store.mode==='cloud'?'Sincronizado':'No se pudo sincronizar ahora')});break;
     case 'signOut':signOut();break;
+    case 'tplXlsx':downloadBlob('GemaFinanzy-plantilla-movimientos.xlsx',buildTemplate());toast('Plantilla descargada');break;
+    case 'quick':openQuick();break;
+    case 'qGo':quickGo();break;
+    case 'qMic':quickMic();break;
+    case 'pinNew':openPinSetup();break;
+    case 'savePin':savePin();break;
+    case 'pinRemove':removePin();break;
+    case 'bioOn':enableBio();break;
+    case 'bioOff':disableBio();break;
+    case 'lockGo':tryPin();break;
+    case 'lockBio':bioUnlock();break;
+    case 'forgotPin':forgotPin();break;
     case 'loadDemo':if(confirm('Se agregarán movimientos de ejemplo para '+S.year+'. Podrás quitarlos después. ¿Continuar?'))loadDemo();break;
     case 'clearDemo':S.tx=S.tx.filter(t=>!t.demo);commit();toast('Datos de ejemplo eliminados');break;
     case 'wipe':if(confirm('Esto borra todos tus movimientos, billeteras y ajustes. ¿Seguro?')&&confirm('Última confirmación: no se puede deshacer.')){const y=S.year;S=DEFAULT();S.year=y;commit();toast('Todo se borró')}break;
@@ -1303,6 +1684,7 @@ document.addEventListener('change',e=>{
   else if(el.id==='walletFilter'){UI.wallet=el.value;render()}
   else if(el.id==='setTheme'){S.theme=el.value;applyTheme();commit()}
   else if(el.id==='setCur'){S.currency=el.value;_nf=null;commit()}
+  else if(el.dataset.scopeName!=null){renameScope(+el.dataset.scopeName,el.value)}
   else if(el.dataset.scopeBiz!=null){S.scopes[+el.dataset.scopeBiz].biz=el.checked;commit()}
   else if(el.dataset.cardField){const c=W(el.dataset.id);const f=el.dataset.cardField;
     if(f==='limit'){const v=parseAmt(el.value);c.limit=isFinite(v)?v:0}
@@ -1322,9 +1704,12 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',()=>{if(S
 
 /* ---------- inicio ---------- */
 (function boot(){
-  const logoSrc='data:image/png;base64,'+LOGO_B64;document.querySelectorAll('.brand-mark,#gateLogo').forEach(im=>im.src=logoSrc);
+  const logoSrc='data:image/png;base64,'+LOGO_B64;document.querySelectorAll('.brand-mark,#gateLogo,#lockLogo').forEach(im=>im.src=logoSrc);
   const local=loadLocal();if(local)S=normalize(local);
   applyTheme();render();setSync();
+  $('#lockPin').addEventListener('input',()=>{const c=pinCfg();if(c&&$('#lockPin').value.length===c.len)tryPin()});
+  $('#lockPin').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();tryPin()}});
+  if(pinCfg())showLock();
   if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js').catch(()=>{});
   if(!CLOUD)return;
   const a=readAuth();

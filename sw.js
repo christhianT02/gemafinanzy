@@ -1,4 +1,4 @@
-const CACHE = 'gemafinanzy-v1';
+const CACHE = 'gemafinanzy-v2';
 const SHELL = ['./', 'index.html', 'config.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
 
 self.addEventListener('install', e => {
