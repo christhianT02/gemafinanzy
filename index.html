@@ -462,6 +462,7 @@ function normalize(s){
 let S=normalize(null);
 const UI={view:'resumen',month:new Date().getMonth(),scope:'all',wallet:'all',biz:null};
 
+const APP_VERSION='2026.09.24-3';
 /* ---------- configuración ---------- */
 const CFG=Object.assign({API_URL:'',GOOGLE_CLIENT_ID:'',CONTACTO:''},window.GF_CONFIG||{});
 const CLOUD=!!(CFG.API_URL&&CFG.GOOGLE_CLIENT_ID);
@@ -1040,7 +1041,8 @@ function vAjustes(){
       <div class="panel-h" style="margin:22px 0 10px"><h3>Respaldo</h3></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="exportJson">Descargar respaldo</button><button class="btn" data-act="exportCsv">Exportar movimientos ${S.year} (CSV)</button><button class="btn" data-act="importJson">Restaurar respaldo</button><input type="file" id="importFile" accept=".json,application/json" hidden></div>
       <div class="panel-h" style="margin:22px 0 10px"><h3>Datos</h3></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">${hasDemo?`<button class="btn" data-act="clearDemo">Quitar datos de ejemplo</button>`:`<button class="btn" data-act="loadDemo">Cargar datos de ejemplo</button>`}<button class="btn danger" data-act="wipe">Borrar todo</button></div></section>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${hasDemo?`<button class="btn" data-act="clearDemo">Quitar datos de ejemplo</button>`:`<button class="btn" data-act="loadDemo">Cargar datos de ejemplo</button>`}<button class="btn danger" data-act="wipe">Borrar todo</button></div>
+      <p class="muted" style="font-size:12px;margin:14px 0 0">GemaFinanzy · versión ${APP_VERSION}</p></section>
   </div>`;
 }
 
