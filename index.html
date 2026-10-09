@@ -18,10 +18,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#EDF1F4;--panel:#FFFFFF;--panel2:#F3F6F8;--line:#D8E1E7;--text:#12222E;--muted:#5B7080;
+  --bg:#F4F7F9;--panel:#FFFFFF;--panel2:#F1F5F7;--line:#E3E9ED;--text:#12222E;--muted:#5B7080;
   --in:#1C9A6C;--out:#D04A3C;--cardc:#B97810;--inv:#4C68DD;--biz:#8E55C4;--brand:#0F6E78;--brand-ink:#FFFFFF;
   --in-soft:rgba(28,154,108,.12);--out-soft:rgba(208,74,60,.12);--card-soft:rgba(185,120,16,.14);--inv-soft:rgba(76,104,221,.12);
-  --shadow:0 1px 2px rgba(18,34,46,.05),0 10px 30px rgba(18,34,46,.06);
+  --shadow:0 1px 2px rgba(18,34,46,.03),0 8px 24px rgba(18,34,46,.04);
   --r-lg:18px;--r-md:12px;--r-sm:8px;
   color-scheme:light;
 }
@@ -340,6 +340,90 @@ select.inp{appearance:none;-webkit-appearance:none;background-image:url("data:im
 .fab.fab2{bottom:94px;right:31px;width:44px;height:44px;border-radius:14px;background:var(--panel);color:var(--brand);border:1px solid var(--line)}
 .fab.fab2 svg{width:22px;height:22px}
 @media (max-width:860px){.fab.fab2{bottom:calc(140px + env(safe-area-inset-bottom,0px));right:21px}}
+
+/* ---- vista simplificada (2026.10.09) ---- */
+h1{font-size:26px}
+.view{padding-top:28px}
+.page-head{margin-bottom:22px}
+.grid{gap:18px}
+.panel{padding:22px;border-color:transparent}
+.panel-h{margin-bottom:16px}
+.view>*{animation:rise .35s ease both}
+.view>*:nth-child(2){animation-delay:.04s}.view>*:nth-child(3){animation-delay:.08s}.view>*:nth-child(4){animation-delay:.12s}.view>*:nth-child(5){animation-delay:.16s}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes slide{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.bar{transform-origin:bottom;animation:grow .55s cubic-bezier(.2,.7,.2,1) both}
+.mtile .fill{transform-origin:bottom;animation:grow .55s cubic-bezier(.2,.7,.2,1) both}
+.flow-track i,.track i,.utl i{transform-origin:left;animation:slide .6s cubic-bezier(.2,.7,.2,1) both}
+@media (prefers-reduced-motion:reduce){.view>*,.bar,.mtile .fill,.flow-track i,.track i,.utl i{animation:none!important}}
+
+/* tarjeta principal */
+.hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) auto;gap:28px;align-items:center;background:var(--panel);border-radius:24px;padding:26px 30px;box-shadow:var(--shadow);margin-bottom:18px}
+.hero-main{display:flex;flex-direction:column;gap:4px;min-width:0}
+.hero-l{font-size:13.5px;font-weight:600;color:var(--muted)}
+.hero-v{font-size:44px;line-height:1.05;font-weight:800;letter-spacing:-.035em;overflow-wrap:anywhere}
+.hero-v.neg{color:var(--out)}
+.hero-s{font-size:13.5px;color:var(--muted)}
+.flow{display:flex;flex-direction:column;gap:14px;min-width:0}
+.flow-row{display:flex;justify-content:space-between;gap:10px;font-size:13.5px;font-weight:600;color:var(--muted)}
+.flow-row b{color:var(--text);font-size:15px}
+.flow-track{height:8px;border-radius:6px;background:var(--panel2);overflow:hidden;margin-top:6px}
+.flow-track i{display:block;height:100%;border-radius:6px}
+.hero .ring{width:104px;height:104px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px}
+.stat{display:flex;flex-direction:column;gap:3px;padding:14px 16px;border-radius:16px;background:var(--panel);box-shadow:var(--shadow);min-width:0}
+.stat span{font-size:12.5px;font-weight:600;color:var(--muted)}
+.stat b{font-size:19px;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat.t-in b{color:var(--in)}.stat.t-out b{color:var(--out)}.stat.t-card b{color:var(--cardc)}.stat.t-inv b{color:var(--inv)}
+.stat small{font-size:12px;color:var(--muted)}
+
+/* detalle que se abre solo si lo pides */
+.more{background:var(--panel);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;min-width:0}
+.more>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 22px;cursor:pointer;font-weight:700;font-size:15px;list-style:none}
+.more>summary::-webkit-details-marker{display:none}
+.more>summary::after{content:"";width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .2s;margin-right:4px}
+.more[open]>summary::after{transform:rotate(-135deg)}
+.more>summary:hover{background:var(--panel2)}
+.more-b{padding:0 22px 20px}
+.more-b .tscroll{margin:0 -22px;padding:0 22px}
+.more-stack{display:flex;flex-direction:column;gap:12px}
+.more-stack .more{box-shadow:none;background:var(--panel2)}
+.more-stack .more>summary:hover{background:var(--line)}
+.ribbon{gap:8px}
+.mtile{border-color:transparent;box-shadow:var(--shadow);height:110px}
+.mtile.now{box-shadow:0 0 0 2px var(--brand) inset}
+.wcard{border-color:transparent}
+.wsec{margin:28px 0 12px}
+.wchips{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr));gap:8px;margin-bottom:18px}
+.wchip{min-width:0;display:flex;align-items:center;gap:10px;padding:8px 12px 8px 8px;border:0;border-radius:16px;background:var(--panel);box-shadow:var(--shadow);text-align:left;transition:transform .15s}
+.wchip:hover{transform:translateY(-1px)}
+.wchip-i{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none;color:var(--wc);background:color-mix(in srgb,var(--wc) 16%,transparent)}
+.wchip-i svg{width:18px;height:18px}
+.wchip-t{display:flex;flex-direction:column;line-height:1.2;min-width:0}
+.wchip-t small{font-size:11.5px;font-weight:600;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wchip-t b{font-size:15px;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wgrid{grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:10px;margin-bottom:10px}
+.wcard{min-width:0;padding:14px 16px 12px 20px;gap:8px;border-radius:18px}
+.wcard .wtop{align-items:center;justify-content:flex-start;gap:12px}
+.wcard .wchip-i{background:color-mix(in srgb,var(--wc) 16%,transparent);color:var(--wc)}
+.wid{flex:1;min-width:0}
+.wname{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wcard .wbal{font-size:20px;white-space:nowrap;flex:none;max-width:55%;overflow:hidden;text-overflow:ellipsis}
+.wcard .wact{gap:4px}
+.wcard .wflow{flex-wrap:wrap;gap:4px 12px}
+.hero:has(.hero-main:only-child){grid-template-columns:1fr}
+.grid>.more{align-self:start}
+@media (max-width:860px){
+  .hero{grid-template-columns:1fr;gap:20px;padding:22px 20px;border-radius:22px}
+  .hero-v{font-size:36px}
+  .hero .ring{justify-self:start}
+  .panel{padding:18px}
+  .more>summary{padding:14px 18px}
+  .more-b{padding:0 18px 16px}
+  .more-b .tscroll{margin:0 -18px;padding:0 18px}
+  .mtile{height:88px}
+}
 </style>
 </head>
 <body>
@@ -427,11 +511,15 @@ const IC={
   up:'<path d="M12 19V5M5 12l7-7 7 7"/>',down:'<path d="M12 5v14M19 12l-7 7-7-7"/>',swap:'<path d="M7 7h13l-4-4M17 17H4l4 4"/>',
   sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   moon:'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+  banco:'<path d="M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/>',
+  ahorro:'<circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5c0-1 1.1-1.7 2.5-1.7s2.5.7 2.5 1.7-1.1 1.5-2.5 1.9-2.5.9-2.5 2 1.1 1.7 2.5 1.7 2.5-.7 2.5-1.7"/>',
+  efectivo:'<path d="M2 7h20v10H2zM12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM5.5 10v4M18.5 10v4"/>',
   left:'<path d="M15 18l-6-6 6-6"/>',right:'<path d="M9 18l6-6-6-6"/>',x:'<path d="M18 6L6 18M6 6l12 12"/>',plus:'<path d="M12 5v14M5 12h14"/>'
 };
 const svg=(k,w=2)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${IC[k]}</svg>`;
 
 const WT={banco:'Banco',ahorro:'Ahorro',efectivo:'Efectivo',credito:'Tarjeta de crédito',negocio:'Negocio',inversion:'Inversión'};
+const WICON={banco:'banco',ahorro:'ahorro',efectivo:'efectivo',negocio:'negocios',inversion:'patrimonio',credito:'tarjetas'};
 const WT_ORDER=['banco','ahorro','efectivo','negocio','inversion','credito'];
 
 /* ---------- estado ---------- */
@@ -467,7 +555,7 @@ function normalize(s){
 let S=normalize(null);
 const UI={view:'resumen',month:new Date().getMonth(),scope:'all',wallet:'all',biz:null};
 
-const APP_VERSION='2026.09.24-5';
+const APP_VERSION='2026.10.09-5';
 /* ---------- configuración ---------- */
 const CFG=Object.assign({API_URL:'',GOOGLE_CLIENT_ID:'',CONTACTO:''},window.GF_CONFIG||{});
 const CLOUD=!!(CFG.API_URL&&CFG.GOOGLE_CLIENT_ID);
@@ -825,6 +913,12 @@ function ring(p,color){
   return `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="none" stroke="var(--panel2)" stroke-width="10"/><circle cx="50" cy="50" r="42" fill="none" stroke="${color}" stroke-width="10" stroke-linecap="round" stroke-dasharray="${len} ${C}"/></svg>`;
 }
 const kpi=(l,v,s,t='')=>`<div class="kpi ${t}"><div class="k-l">${l}</div><div class="k-v num" title="${esc(v)}">${v}</div>${s?`<div class="k-s">${s}</div>`:''}</div>`;
+/* tarjeta principal, cifras secundarias y bloques plegables */
+const hero=(label,value,neg,sub,extra)=>`<section class="hero"><div class="hero-main"><span class="hero-l">${label}</span><b class="hero-v num ${neg?'neg':''}">${value}</b>${sub?`<span class="hero-s">${sub}</span>`:''}</div>${extra||''}</section>`;
+const stat=(l,v,t='',s='')=>`<div class="stat ${t}"><span>${l}</span><b class="num" title="${esc(v)}">${v}</b>${s?`<small>${s}</small>`:''}</div>`;
+const more=(title,body,open)=>`<details class="more" ${open?'open':''}><summary>${title}</summary><div class="more-b">${body}</div></details>`;
+const flowBars=(ing,gas,l1,l2)=>{const mx=Math.max(ing,gas,1);return `<div class="flow"><div><div class="flow-row"><span>${l1}</span><b class="num in">${fmt0(ing)}</b></div><div class="flow-track"><i style="width:${ing/mx*100}%;background:var(--in)"></i></div></div><div><div class="flow-row"><span>${l2}</span><b class="num out">${fmt0(gas)}</b></div><div class="flow-track"><i style="width:${gas/mx*100}%;background:var(--out)"></i></div></div></div>`};
+const rateRing=(rate,label)=>`<div class="ring">${ring(isFinite(rate)?Math.max(0,rate):0,rate<0?'var(--out)':'var(--in)')}<div class="rc"><div><b class="num">${isFinite(rate)?Math.round(rate*100)+'%':'—'}</b><span>${label}</span></div></div></div>`;
 const scopeLabel=()=>UI.scope==='all'?'Todas tus finanzas: personal y negocios':'Solo '+UI.scope;
 
 /* ---------- vistas ---------- */
@@ -847,28 +941,28 @@ function vResumen(){
   const rows=ms.map((r,m)=>`<tr class="click ${y===cy&&m===cm?'hl':''}" data-act="goMonth" data-m="${m}"><td><b>${MESES[m]}</b></td><td class="in">${r.ing?fmt(r.ing):'—'}</td><td>${r.gas?fmt(r.gas):'—'}</td><td>${r.card?fmt(r.card):'—'}</td><td>${r.inv?fmt(r.inv):'—'}</td><td class="${r.net<0?'out':''}"><b>${r.ing||r.gas?fmt(r.net):'—'}</b></td><td class="${r.rate<0?'out':''}">${r.ing?pct(r.rate):'—'}</td></tr>`).join('');
   return `
   <div class="page-head"><div><h1>Tu año ${y}</h1><p class="sub">${scopeLabel()}. Toca un mes para ver el detalle.</p></div></div>
+  ${hero('Saldo libre del año',fmt0(t.net),t.net<0,'Ingresos − gastos − inversión · promedio '+fmt0(t.net/active)+'/mes',flowBars(t.ing,t.gas,'Ingresos','Gastos')+rateRing(t.rate,'ahorro'))}
+  ${S.wallets.length?`<div class="wchips" aria-label="Saldo de tus billeteras">${WT_ORDER.flatMap(tp=>S.wallets.filter(w=>w.type===tp)).map(w=>{const cr=w.type==='credito';const v=cr?Math.max(0,-balance(w)):walletValue(w);return `<button class="wchip" style="--wc:${w.color}" data-act="nav" data-v="billeteras" title="${esc(w.name)}${cr?' (deuda)':''}"><span class="wchip-i">${svg(WICON[w.type]||'billeteras',2)}</span><span class="wchip-t"><small>${esc(w.name)}</small><b class="num ${cr&&v>0||v<0?'out':''}">${cr&&v>0?'−':''}${fmt0(v)}</b></span></button>`}).join('')}</div>`:''}
   <div class="ribbon">${ribbon}</div>
-  <div class="kpis">
-    ${kpi('Ingresos del año',fmt(t.ing),'Promedio '+fmt0(t.ing/active)+'/mes','t-in')}
-    ${kpi('Gastos del año',fmt(t.gas),'Con tarjeta: '+fmt0(t.card),'t-out')}
-    ${kpi('Saldo libre',fmt(t.net),'Ahorro: '+pct(t.rate),t.net<0?'t-out':'')}
-    ${kpi('Invertido',fmt(t.inv),'Total aportado a inversiones','t-inv')}
-    ${kpi('Deuda en tarjetas',fmt(debt),S.wallets.some(w=>w.type==='credito')?'Saldo actual':'Sin tarjetas','t-card')}
-    ${kpi('Patrimonio neto',fmt(nw.n),'Activos '+fmt0(nw.a))}
+  <div class="stats">
+    ${stat('Deuda en tarjetas',fmt0(debt),'t-card',S.wallets.some(w=>w.type==='credito')?'Saldo actual':'Sin tarjetas')}
+    ${stat('Con tarjeta',fmt0(t.card),'','De tus gastos del año')}
   </div>
   <div class="grid">
-    <section class="panel c8"><div class="panel-h"><h3>Ingresos y gastos por mes</h3><div class="legend"><span><i style="background:var(--in)"></i>Ingresos</span><span><i style="background:var(--out)"></i>Gastos</span><span><i style="background:var(--inv)"></i>Invertido</span></div></div>
-      ${barChart(ms,[{k:'ing',c:'var(--in)',l:'Ingresos'},{k:'gas',c:'var(--out)',l:'Gastos'},{k:'inv',c:'var(--inv)',l:'Invertido'}])}</section>
+    <section class="panel c8"><div class="panel-h"><h3>Ingresos y gastos por mes</h3><div class="legend"><span><i style="background:var(--in)"></i>Ingresos</span><span><i style="background:var(--out)"></i>Gastos</span></div></div>
+      ${barChart(ms,[{k:'ing',c:'var(--in)',l:'Ingresos'},{k:'gas',c:'var(--out)',l:'Gastos'}])}</section>
     <section class="panel c4"><div class="panel-h"><h3>Gastos por categoría</h3></div>
-      ${cats.length?`<div class="donut-wrap">${donut(cats,t.gas,'en '+y)}${hlist(cats.slice(0,6),t.gas)}</div>`:`<div class="empty"><b>Sin gastos registrados</b>Tus categorías aparecerán aquí.</div>`}</section>
-    <section class="panel c12"><div class="panel-h"><h3>Resumen mensual</h3><span class="muted" style="font-size:13px">Toca una fila para abrir el mes</span></div>
+      ${cats.length?`<div class="donut-wrap">${donut(cats,t.gas,'en '+y)}${hlist(cats.slice(0,5),t.gas)}</div>`:`<div class="empty"><b>Sin gastos registrados</b>Tus categorías aparecerán aquí.</div>`}</section>
+    <div class="c12 more-stack">
+    <details class="more"><summary>Tabla mes por mes</summary><div class="more-b"><p class="muted" style="margin:0 0 8px;font-size:13px">Toca una fila para abrir el mes.</p>
       <div class="tscroll"><table><thead><tr><th>Mes</th><th>Ingresos</th><th>Gastos</th><th>De ellos, tarjeta</th><th>Invertido</th><th>Saldo libre</th><th>% ahorro</th></tr></thead>
       <tbody>${rows}<tr class="tot"><td>Total del año</td><td class="in">${fmt(t.ing)}</td><td>${fmt(t.gas)}</td><td>${fmt(t.card)}</td><td>${fmt(t.inv)}</td><td class="${t.net<0?'out':''}">${fmt(t.net)}</td><td>${pct(t.rate)}</td></tr>
-      <tr class="avg"><td>Promedio mensual</td><td>${fmt(t.ing/active)}</td><td>${fmt(t.gas/active)}</td><td>${fmt(t.card/active)}</td><td>${fmt(t.inv/active)}</td><td>${fmt(t.net/active)}</td><td></td></tr></tbody></table></div></section>
-    ${UI.scope==='all'&&scopeRows.length?`<section class="panel c12"><div class="panel-h"><h3>Personal y negocios</h3><button class="btn sm" data-act="nav" data-v="negocios">Ver negocios</button></div>
+      <tr class="avg"><td>Promedio mensual</td><td>${fmt(t.ing/active)}</td><td>${fmt(t.gas/active)}</td><td>${fmt(t.card/active)}</td><td>${fmt(t.inv/active)}</td><td>${fmt(t.net/active)}</td><td></td></tr></tbody></table></div></div></details>
+    ${UI.scope==='all'&&scopeRows.length?`<details class="more"><summary>Personal y negocios</summary><div class="more-b"><div style="margin-bottom:8px"><button class="btn sm" data-act="nav" data-v="negocios">Ver negocios</button></div>
       <div class="tscroll"><table><thead><tr><th>Ámbito</th><th>Ingresos</th><th>Gastos</th><th>Resultado</th><th>Margen</th></tr></thead><tbody>
       ${scopeRows.map(({s,st})=>`<tr><td><b>${esc(s.name)}</b> ${s.biz?'<span class="pill info">Negocio</span>':''}</td><td class="in">${fmt(st.ing)}</td><td>${fmt(st.gas)}</td><td class="${st.net<0?'out':''}"><b>${fmt(st.net)}</b></td><td>${pct(st.rate)}</td></tr>`).join('')}
-      </tbody></table></div></section>`:''}
+      </tbody></table></div></div></details>`:''}
+    </div>
   </div>`;
 }
 
@@ -898,21 +992,20 @@ function vMes(){
   return `
   <div class="page-head"><div><div class="mnav"><button class="btn icon-btn" data-act="mPrev" aria-label="Mes anterior">${svg('left',2.4)}</button><h1>${MESES[m]} ${y}</h1><button class="btn icon-btn" data-act="mNext" aria-label="Mes siguiente">${svg('right',2.4)}</button></div><p class="sub">${scopeLabel()}</p></div>
   <select class="sel" id="walletFilter" aria-label="Filtrar por billetera">${wOpts}</select></div>
-  <div class="kpis">
-    ${kpi('Ingresos',fmt(r.ing),'','t-in')}
-    ${kpi('Gastos',fmt(r.gas),'','t-out')}
-    ${kpi('De ellos, tarjeta',fmt(r.card),'','t-card')}
-    ${kpi('Invertido',fmt(r.inv),'','t-inv')}
-    ${kpi('Saldo libre',fmt(r.net),'Ingresos − gastos − inversión del mes',r.net<0?'t-out':'')}
-    ${kpi('% ahorro',pct(r.rate),'Del ingreso del mes',r.rate<0?'t-out':'')}
+  ${hero('Saldo libre de '+MESES[m].toLowerCase(),fmt0(r.net),r.net<0,'Ingresos − gastos − inversión del mes',flowBars(r.ing,r.gas,'Ingresos','Gastos')+rateRing(r.rate,'ahorro'))}
+  <div class="stats">
+    ${stat('Con tarjeta',fmt0(r.card),'t-card','De tus gastos')}
+    ${stat('Invertido',fmt0(r.inv),'t-inv','Aportado en el mes')}
   </div>
   <div class="grid">
     <section class="panel c7"><div class="panel-h"><h3>Movimientos</h3><span class="muted" style="font-size:13px">${txs.length} en el mes</span></div>
       ${list||`<div class="empty"><b>No hay movimientos en ${MESES[m].toLowerCase()}</b>Registra tu primer ingreso o gasto del mes.<br><button class="btn primary" data-act="newTx">${svg('plus',2.4)}Nuevo movimiento</button></div>`}</section>
     <div class="c5" style="display:flex;flex-direction:column;gap:14px;min-width:0">
-      <section class="panel"><div class="panel-h"><h3>Gastos por categoría</h3></div>${cats.length?hlist(cats,r.gas):'<div class="empty">Sin gastos este mes.</div>'}</section>
-      <section class="panel"><div class="panel-h"><h3>Ingresos por concepto</h3></div>${inc.length?hlist(inc,r.ing):'<div class="empty">Sin ingresos este mes.</div>'}</section>
-      <section class="panel"><div class="panel-h"><h3>Movimiento por billetera</h3></div>${flows.length?flows.map(({w,f})=>`<div class="list-row"><i class="sw" style="width:10px;height:10px;border-radius:3px;background:${w.color}"></i><div class="grow"><b>${esc(w.name)}</b><span>${WT[w.type]}</span></div><div style="text-align:right" class="num"><div class="in">+${fmt(f.i)}</div><div class="out">−${fmt(f.o)}</div></div></div>`).join(''):'<div class="empty">Sin movimientos.</div>'}</section>
+      <section class="panel"><div class="panel-h"><h3>Gastos por categoría</h3></div>${cats.length?hlist(cats.slice(0,6),r.gas):'<div class="empty">Sin gastos este mes.</div>'}</section>
+      <div class="more-stack">
+      ${more('Ingresos por concepto',inc.length?hlist(inc,r.ing):'<div class="empty">Sin ingresos este mes.</div>')}
+      ${more('Movimiento por billetera',flows.length?flows.map(({w,f})=>`<div class="list-row"><i class="sw" style="width:10px;height:10px;border-radius:3px;background:${w.color}"></i><div class="grow"><b>${esc(w.name)}</b><span>${WT[w.type]}</span></div><div style="text-align:right" class="num"><div class="in">+${fmt(f.i)}</div><div class="out">−${fmt(f.o)}</div></div></div>`).join(''):'<div class="empty">Sin movimientos.</div>')}
+      </div>
     </div>
   </div>`;
 }
@@ -924,13 +1017,17 @@ function wCard(w){
     extra=`<div><div class="wflow"><span class="muted">Corte día ${w.cutDay||15}</span><span class="muted">Pago día ${w.payDay||2}</span></div>${lim?`<div class="utl" style="margin-top:8px"><i style="width:${Math.min(100,debt/lim*100)}%"></i></div><div class="muted" style="font-size:12px;margin-top:4px">Disponible ${fmt(Math.max(0,lim-debt))} de ${fmt(lim)}</div>`:''}</div>`;}
   if(w.type==='inversion'&&w.market!=null&&w.market!==''){const g=v-b;extra=`<div class="wflow"><span class="muted">Aportado ${fmt(b)}</span><span class="${g>=0?'in':'out'}">${g>=0?'+':''}${fmt(g)} (${pct(b?g/b:NaN)})</span></div>`}
   const shown=w.type==='credito'?Math.max(0,-b):v;
+  const typeTxt=WT[w.type]+(w.scope?' de '+w.scope:'');
+  const sub=(typeTxt.toLowerCase()===String(w.name).trim().toLowerCase()?'':typeTxt)+(w.type==='credito'?' · deuda':w.type==='inversion'?' · valor':'');
   return `<div class="wcard" style="--wc:${w.color}">
-    <div class="wtop"><div><div class="wname">${esc(w.name)}</div><div class="wtype">${WT[w.type]}${w.scope?' de '+esc(w.scope):''}</div></div><button class="btn sm ghost" data-act="editWallet" data-id="${w.id}">Editar</button></div>
-    <div><div class="muted" style="font-size:12px;font-weight:600">${w.type==='credito'?'Deuda actual':w.type==='inversion'?'Valor':'Saldo'}</div><div class="wbal num ${w.type==='credito'&&shown>0?'out':b<0?'out':''}">${fmt(shown)}</div></div>
+    <div class="wtop"><span class="wchip-i">${svg(WICON[w.type]||'billeteras',2)}</span>
+      <div class="wid"><div class="wname">${esc(w.name)}</div>${sub.replace(/^ · /,'')?`<div class="wtype">${esc(sub.replace(/^ · /,''))}</div>`:''}</div>
+      <div class="wbal num ${w.type==='credito'&&shown>0?'out':b<0?'out':''}">${fmt(shown)}</div></div>
     ${extra}
-    <div class="wflow num"><span class="in">+${fmt(f.i)}</span><span class="out">−${fmt(f.o)}</span><span class="muted">este mes</span></div>
+    <div class="wflow num"><span class="in">+${fmt0(f.i)}</span><span class="out">−${fmt0(f.o)}</span><span class="muted">este mes</span></div>
     <div class="wact"><button class="btn sm" data-act="walletTx" data-id="${w.id}">Movimientos</button>
-    ${w.type==='credito'?`<button class="btn sm" data-act="payCard" data-id="${w.id}">Registrar pago</button>`:`<button class="btn sm" data-act="transferFrom" data-id="${w.id}">Transferir</button>`}</div></div>`;
+    ${w.type==='credito'?`<button class="btn sm" data-act="payCard" data-id="${w.id}">Registrar pago</button>`:`<button class="btn sm" data-act="transferFrom" data-id="${w.id}">Transferir</button>`}
+    <button class="btn sm ghost" data-act="editWallet" data-id="${w.id}">Editar</button></div></div>`;
 }
 function vBilleteras(){
   const liquid=S.wallets.filter(w=>['banco','ahorro','efectivo','negocio'].includes(w.type)).reduce((s,w)=>s+balance(w),0);
@@ -938,13 +1035,13 @@ function vBilleteras(){
   const debt=S.wallets.filter(w=>w.type==='credito').reduce((s,w)=>s+Math.max(0,-balance(w)),0);
   const groups=WT_ORDER.map(t=>({t,ws:S.wallets.filter(w=>w.type===t)})).filter(g=>g.ws.length);
   return `<div class="page-head"><div><h1>Billeteras</h1><p class="sub">Cada movimiento sale o entra en una billetera; el saldo se actualiza solo.</p></div><button class="btn primary" data-act="newWallet">${svg('plus',2.4)}Nueva billetera</button></div>
-  <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
-    ${kpi('Dinero disponible',fmt(liquid),'Bancos, ahorro, efectivo y negocios','t-in')}
-    ${kpi('Inversiones',fmt(inv),'Valor actual','t-inv')}
-    ${kpi('Deuda en tarjetas',fmt(debt),'','t-card')}
-    ${kpi('Neto de billeteras',fmt(liquid+inv-debt),'')}
+  ${hero('Dinero disponible',fmt0(liquid),liquid<0,'Bancos, ahorro, efectivo y negocios')}
+  <div class="stats">
+    ${stat('Inversiones',fmt0(inv),'t-inv','Valor actual')}
+    ${stat('Deuda en tarjetas',fmt0(debt),'t-card')}
+    ${stat('Neto de billeteras',fmt0(liquid+inv-debt))}
   </div>
-  ${groups.map(g=>`<div class="wsec"><h2>${WT[g.t]}${g.ws.length>1&&g.t!=='efectivo'?(g.t==='credito'?'s':g.t==='inversion'?'es':'s'):''}</h2><span class="muted num" style="font-size:13px">${g.t==='credito'?'Deuda '+fmt(g.ws.reduce((s,w)=>s+Math.max(0,-balance(w)),0)):fmt(g.ws.reduce((s,w)=>s+walletValue(w),0))}</span></div><div class="wgrid">${g.ws.map(wCard).join('')}</div>`).join('')}
+  ${groups.map(g=>`${g.ws.length>1?`<div class="wsec"><h2>${WT[g.t]}${g.ws.length>1&&g.t!=='efectivo'?(g.t==='credito'?'s':g.t==='inversion'?'es':'s'):''}</h2><span class="muted num" style="font-size:13px">${g.t==='credito'?'Deuda '+fmt(g.ws.reduce((s,w)=>s+Math.max(0,-balance(w)),0)):fmt(g.ws.reduce((s,w)=>s+walletValue(w),0))}</span></div>`:''}<div class="wgrid">${g.ws.map(wCard).join('')}</div>`).join('')}
   ${!S.wallets.length?`<div class="panel empty"><b>No tienes billeteras</b>Crea tu cuenta bancaria, ahorro, efectivo o tarjeta.<br><button class="btn primary" data-act="newWallet">Crear billetera</button></div>`:''}`;
 }
 
@@ -996,22 +1093,19 @@ function vNegocios(){
   const util=ms.map(r=>({...r,netPos:Math.max(0,r.net)}));
   return `<div class="page-head"><div><h1>Negocios</h1><p class="sub">Ventas, costos y utilidad de cada negocio en ${y}.</p></div>
     <div class="scope-tabs">${biz.map(b=>`<button class="${b.name===UI.biz?'on':''}" data-act="pickBiz" data-v="${esc(b.name)}">${esc(b.name)}</button>`).join('')}</div></div>
-  <div class="kpis">
-    ${kpi('Ventas del año',fmt(t.ing),'Promedio '+fmt0(t.ing/active)+'/mes','t-in')}
-    ${kpi('Costos y gastos',fmt(t.gas),'','t-out')}
-    ${kpi('Utilidad',fmt(t.net),'',t.net<0?'t-out':'')}
-    ${kpi('Margen',pct(margin),'Utilidad / ventas',margin<0?'t-out':'')}
-    ${kpi('Mejor mes',best?MESES[best.m]:'—',best?fmt(best.r.net):'')}
-    ${kpi('Caja del negocio',fmt(bw.reduce((s,w)=>s+balance(w),0)),bw.length?bw.map(w=>w.name).join(', '):'Sin billetera propia')}
+  ${hero('Utilidad del año',fmt0(t.net),t.net<0,'Ventas − costos · promedio de ventas '+fmt0(t.ing/active)+'/mes',flowBars(t.ing,t.gas,'Ventas','Costos')+rateRing(margin,'margen'))}
+  <div class="stats">
+    ${stat('Mejor mes',best?MESES[best.m]:'—','',best?fmt0(best.r.net):'')}
+    ${stat('Caja del negocio',fmt0(bw.reduce((s,w)=>s+balance(w),0)),'',bw.length?esc(bw.map(w=>w.name).join(', ')):'Sin billetera propia')}
   </div>
   <div class="grid">
     <section class="panel c8"><div class="panel-h"><h3>Ventas, costos y utilidad</h3><div class="legend"><span><i style="background:var(--in)"></i>Ventas</span><span><i style="background:var(--out)"></i>Costos</span><span><i style="background:var(--biz)"></i>Utilidad</span></div></div>
       ${barChart(util,[{k:'ing',c:'var(--in)',l:'Ventas'},{k:'gas',c:'var(--out)',l:'Costos'},{k:'netPos',c:'var(--biz)',l:'Utilidad'}])}</section>
     <section class="panel c4"><div class="panel-h"><h3>¿En qué se va el dinero?</h3></div>${costs.length?`<div class="donut-wrap">${donut(costs,t.gas,'costos')}${hlist(costs.slice(0,5),t.gas)}</div>`:'<div class="empty">Sin costos registrados.</div>'}</section>
     <section class="panel c6"><div class="panel-h"><h3>Ventas por concepto</h3></div>${sales.length?hlist(sales,t.ing):'<div class="empty">Sin ventas registradas.</div>'}</section>
-    <section class="panel c6"><div class="panel-h"><h3>Mes a mes</h3></div><div class="tscroll"><table><thead><tr><th>Mes</th><th>Ventas</th><th>Costos</th><th>Utilidad</th><th>Margen</th></tr></thead><tbody>
+    <details class="more c6"><summary>Mes a mes</summary><div class="more-b"><div class="tscroll"><table><thead><tr><th>Mes</th><th>Ventas</th><th>Costos</th><th>Utilidad</th><th>Margen</th></tr></thead><tbody>
       ${ms.map((r,m)=>r.ing||r.gas?`<tr><td>${MESES[m]}</td><td class="in">${fmt(r.ing)}</td><td>${fmt(r.gas)}</td><td class="${r.net<0?'out':''}"><b>${fmt(r.net)}</b></td><td>${pct(r.rate)}</td></tr>`:'').join('')||'<tr><td colspan="5" class="muted" style="text-align:center">Sin movimientos en '+y+'</td></tr>'}
-    </tbody></table></div></section>
+    </tbody></table></div></div></details>
   </div>`;
 }
 
@@ -1022,8 +1116,10 @@ function vPatrimonio(){
   const cards=S.wallets.filter(w=>w.type==='credito').map(w=>({w,v:Math.max(0,-balance(w))}));
   const neg=S.wallets.filter(w=>w.type!=='credito'&&balance(w)<0);
   return `<div class="page-head"><div><h1>Patrimonio</h1><p class="sub">Lo que tienes menos lo que debes, conectado con tus billeteras.</p></div></div>
-  <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
-    ${kpi('Total activos',fmt(nw.a),'','t-in')}${kpi('Total pasivos',fmt(nw.l),'','t-out')}${kpi('Patrimonio neto',fmt(nw.n),'',nw.n<0?'t-out':'')}
+  ${hero('Patrimonio neto',fmt0(nw.n),nw.n<0,'Lo que tienes menos lo que debes')}
+  <div class="stats">
+    ${stat('Total activos',fmt0(nw.a),'t-in')}${stat('Total pasivos',fmt0(nw.l),'t-out')}
+    ${stat('Invertido',fmt0(S.wallets.filter(w=>w.type==='inversion').reduce((s,w)=>s+walletValue(w),0)),'t-inv','Aportado en '+y+': '+fmt0(yearStats(y,'all').t.inv))}
   </div>
   <div class="grid">
     <section class="panel c12"><div class="panel-h"><h3>Evolución del patrimonio en ${y}</h3><span class="muted" style="font-size:13px">Cierre de cada mes</span></div>${lineChart(evo)}</section>
