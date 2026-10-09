@@ -555,7 +555,7 @@ function normalize(s){
 let S=normalize(null);
 const UI={view:'resumen',month:new Date().getMonth(),scope:'all',wallet:'all',biz:null};
 
-const APP_VERSION='2026.10.09-5';
+const APP_VERSION='2026.10.09-6';
 /* ---------- configuración ---------- */
 const CFG=Object.assign({API_URL:'',GOOGLE_CLIENT_ID:'',CONTACTO:''},window.GF_CONFIG||{});
 const CLOUD=!!(CFG.API_URL&&CFG.GOOGLE_CLIENT_ID);
@@ -1143,7 +1143,8 @@ function vAjustes(){
   const pc=pinCfg();
   const step=(n,t)=>`<li class="stp"><span class="stp-n">${n}</span><span>${t}</span></li>`;
   const secBtns=!canPin()?`<p class="muted" style="font-size:13px;margin:0">El bloqueo con PIN no está disponible en este navegador.</p>`
-    :pc?`<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="pinNew">Cambiar PIN</button><button class="btn danger" data-act="pinRemove">Quitar PIN</button>${BIO_OK?(pc.bio?`<button class="btn" data-act="bioOff">Desactivar huella o rostro</button>`:`<button class="btn" data-act="bioOn">Usar huella o rostro</button>`):''}</div>`
+    :pc?`<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="pinNew">Cambiar PIN</button><button class="btn danger" data-act="pinRemove">Quitar PIN</button>${BIO_OK?(pc.bio?`<button class="btn" data-act="bioOff">Desactivar huella o rostro</button>`:`<button class="btn" data-act="bioOn">Usar huella o rostro</button>`):''}</div>
+      <label class="field" style="margin-top:12px;max-width:280px"><span>Pedir el PIN de nuevo después de</span><select class="inp" id="setLockAfter">${LOCK_OPTS.map(([m,l])=>`<option value="${m}" ${lockAfterMin()===m?'selected':''}>${l}</option>`).join('')}</select></label>`
     :`<button class="btn primary" data-act="pinNew">Crear PIN</button>`;
   return `<div class="page-head"><div><h1>Ajustes</h1><p class="sub">Configura tu app, importa tu historial y protege tu información.</p></div></div>
   <div class="grid">
@@ -1665,6 +1666,15 @@ async function pinHash(pin,saltB64){
 }
 async function pinOk(pin){const c=pinCfg();return !!c&&await pinHash(String(pin||''),c.salt)===c.hash}
 let locked=false,failCount=0,hiddenAt=0,lockUntil=0;
+/* El PIN solo se pide si pasó más que el tiempo elegido desde la última vez que usaste la app (también al cerrar, recargar o volver a abrir). */
+const LASTACT='gf-last-active',LOCKAFTER='gf-lock-after';
+const LOCK_OPTS=[[0,'Siempre al abrir'],[5,'5 minutos'],[30,'30 minutos'],[60,'1 hora'],[240,'4 horas'],[720,'12 horas']];
+function lockAfterMin(){try{const v=localStorage.getItem(LOCKAFTER);return v==null?60:Math.max(0,+v||0)}catch(e){return 60}}
+function touchActive(){try{localStorage.setItem(LASTACT,String(Date.now()))}catch(e){}}
+function lastActive(){try{return +(localStorage.getItem(LASTACT)||0)}catch(e){return 0}}
+function lockExpired(){const m=lockAfterMin();const l=lastActive();return m===0||!l||Date.now()-l>m*60000}
+setInterval(()=>{if(document.visibilityState==='visible'&&!locked&&pinCfg())touchActive()},20000);
+window.addEventListener('pagehide',()=>{if(!locked&&pinCfg())touchActive()});
 try{lockUntil=+(localStorage.getItem('gf-lock-until')||0)}catch(e){}
 function showLock(){
   const c=pinCfg();if(!c)return;
@@ -1674,7 +1684,7 @@ function showLock(){
   $('#lockForgot').style.display=CLOUD?'':'none';
   setTimeout(()=>{$('#lockPin').focus();if(c.bio)bioUnlock()},80);
 }
-function hideLock(){locked=false;failCount=0;$('#lock').classList.remove('open');$('#lockPin').blur()}
+function hideLock(){locked=false;failCount=0;touchActive();$('#lock').classList.remove('open');$('#lockPin').blur()}
 async function tryPin(){
   const c=pinCfg();if(!c)return hideLock();
   const wait=lockUntil-Date.now();
@@ -1732,8 +1742,8 @@ function forgotPin(){
   signOut(true);
 }
 document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState==='hidden')hiddenAt=Date.now();
-  else if(pinCfg()&&!locked&&hiddenAt&&Date.now()-hiddenAt>30000)showLock();
+  if(document.visibilityState==='hidden'){hiddenAt=Date.now();if(!locked&&pinCfg())touchActive()}
+  else if(pinCfg()&&!locked&&lockExpired())showLock();
 });
 
 /* ---------- datos de ejemplo ---------- */
@@ -1846,6 +1856,7 @@ document.addEventListener('change',e=>{
   else if(el.id==='scopeSel'){UI.scope=el.value;render()}
   else if(el.id==='walletFilter'){UI.wallet=el.value;render()}
   else if(el.id==='setTheme'){S.theme=el.value;applyTheme();commit()}
+  else if(el.id==='setLockAfter'){try{localStorage.setItem(LOCKAFTER,el.value)}catch(e){}toast('Listo: se guardó en este dispositivo')}
   else if(el.id==='setCur'){S.currency=el.value;_nf=null;commit()}
   else if(el.dataset.scopeName!=null){renameScope(+el.dataset.scopeName,el.value)}
   else if(el.dataset.scopeBiz!=null){S.scopes[+el.dataset.scopeBiz].biz=el.checked;commit()}
@@ -1873,7 +1884,7 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',()=>{if(S
   applyTheme();render();setSync();
   $('#lockPin').addEventListener('input',()=>{const c=pinCfg();if(c&&$('#lockPin').value.length===c.len)tryPin()});
   $('#lockPin').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();tryPin()}});
-  if(pinCfg())showLock();
+  if(pinCfg()&&lockExpired())showLock();
   if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js').catch(()=>{});
   if(!CLOUD)return;
   const a=readAuth();
